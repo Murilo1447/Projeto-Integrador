@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>FixCity</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+</head>
+<body>
+
+<header>
+  <h1>FixCity</h1>
+  <p>Plataforma oficial de registro de problemas urbanos</p>
+  <button onclick="irParaDenuncias()">Denúncias</button>
+</header>
+
+<div class="container">
+
+ 
+  <div class="card comentarios" style="padding-right: 50px;">
+    <h2>Comentários</h2>
+
+    <div class="comentario">
+      <strong>João Silva</strong>
+      <span>23/03/2026</span>
+      <p>Problema resolvido com sucesso!</p>
+    </div>
+
+    <div class="comentario">
+      <strong>Maria Santos</strong>
+      <span>22/03/2026</span>
+      <p>Aguardando peças para conclusão.</p>
+    </div>
+
+    <div class="comentario">
+      <strong>Pedro Costa</strong>
+      <span>21/03/2026</span>
+      <p>Situação crítica, necessita atenção urgente.</p>
+    </div>
+
+    <div class="comentario">
+      <strong>Ana Oliveira</strong>
+      <span>23/03/2026</span>
+      <p>Em andamento, previsão de término amanhã.</p>
+    </div>
+
+  </div>
+
+  <!-- Mapa -->
+  <div class="card mapa-container">
+    <h2>Mapa de Situações</h2>
+    <input type="text" placeholder="Buscar localização..." class="search">
+    <div id="map"></div>
+
+    <!-- Legenda -->
+    <div class="legenda">
+      <div><span class="dot green"></span> Resolvido</div>
+      <div><span class="dot yellow"></span> Em andamento</div>
+      <div><span class="dot red"></span> Não resolvido</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="script 1.js"></script>
+</body>
+</html>
