@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,15 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <header class="subhero">
-    <a class="btn btn--ghost" href="{% url 'fixcity:home' %}">Voltar ao mapa</a>
+    <a class="btn btn--ghost" href="{{ url_for('home') }}">Voltar ao mapa</a>
     <div>
       <p class="eyebrow">Central operacional</p>
       <h1>Registro e acompanhamento</h1>
-      <p class="hero__text">As regras de validacao agora rodam no backend Django, com persistencia em banco.</p>
+      <p class="hero__text">As regras de validacao agora rodam no backend Flask, com persistencia em banco.</p>
     </div>
   </header>
 
@@ -29,25 +28,67 @@
         </div>
       </div>
 
-      {% if messages %}
-        <div class="messages">
-          {% for message in messages %}
-            <div class="message message--{{ message.tags|default:'info' }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <form method="post" class="form-grid">
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="{% if field.name == 'descricao' %}field field--full{% else %}field{% endif %}">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% for error in field.errors %}
-              <small class="field-error">{{ error }}</small>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="messages">
+            {% for category, message in messages %}
+              <div class="message message--{{ category }}">{{ message }}</div>
             {% endfor %}
           </div>
-        {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="form-grid">
+        <div class="field">
+          <label for="cpf">CPF</label>
+          <input id="cpf" name="cpf" class="form-control" value="{{ form_data.cpf }}" placeholder="CPF do solicitante">
+          {% if errors.get("cpf") %}<small class="field-error">{{ errors.get("cpf") }}</small>{% endif %}
+        </div>
+        <div class="field">
+          <label for="nome">Nome</label>
+          <input id="nome" name="nome" class="form-control" value="{{ form_data.nome }}" placeholder="Nome (opcional)">
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input id="email" name="email" class="form-control" value="{{ form_data.email }}" placeholder="E-mail (opcional)">
+          {% if errors.get("email") %}<small class="field-error">{{ errors.get("email") }}</small>{% endif %}
+        </div>
+        <div class="field">
+          <label for="categoria">Categoria</label>
+          <select id="categoria" name="categoria" class="form-control">
+            <option value="">Selecione a categoria</option>
+            {% for value, label in category_choices %}
+              <option value="{{ value }}" {% if form_data.categoria == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.get("categoria") %}<small class="field-error">{{ errors.get("categoria") }}</small>{% endif %}
+        </div>
+        <div class="field">
+          <label for="cep">CEP</label>
+          <input id="cep" name="cep" class="form-control" value="{{ form_data.cep }}" placeholder="CEP">
+          {% if errors.get("cep") %}<small class="field-error">{{ errors.get("cep") }}</small>{% endif %}
+        </div>
+        <div class="field">
+          <label for="rua">Rua</label>
+          <input id="rua" name="rua" class="form-control" value="{{ form_data.rua }}" placeholder="Rua">
+        </div>
+        <div class="field">
+          <label for="bairro">Bairro</label>
+          <input id="bairro" name="bairro" class="form-control" value="{{ form_data.bairro }}" placeholder="Bairro">
+        </div>
+        <div class="field">
+          <label for="cidade">Cidade</label>
+          <input id="cidade" name="cidade" class="form-control" value="{{ form_data.cidade }}" placeholder="Cidade">
+        </div>
+        <div class="field">
+          <label for="numero">Numero</label>
+          <input id="numero" name="numero" class="form-control" value="{{ form_data.numero }}" placeholder="Numero">
+        </div>
+        <div class="field field--full">
+          <label for="descricao">Descricao</label>
+          <textarea id="descricao" name="descricao" class="form-control" rows="4" placeholder="Descreva o problema encontrado">{{ form_data.descricao }}</textarea>
+          {% if errors.get("descricao") %}<small class="field-error">{{ errors.get("descricao") }}</small>{% endif %}
+        </div>
         <div class="field field--full">
           <button class="btn btn--primary" type="submit">Registrar chamado</button>
         </div>
@@ -67,18 +108,17 @@
           <article class="call-card call-card--detailed">
             <div class="call-card__top">
               <div>
-                <strong>{{ chamado.get_categoria_display }}</strong>
+                <strong>{{ chamado.categoria_label }}</strong>
                 <p class="muted">{{ chamado.endereco_completo }}</p>
               </div>
-              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.get_status_display }}</span>
+              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.status_label }}</span>
             </div>
 
             <p>{{ chamado.descricao }}</p>
 
-            <form method="post" action="{% url 'fixcity:atualizar_status' chamado.pk %}" class="inline-form">
-              {% csrf_token %}
-              <label for="status-{{ chamado.pk }}">Status</label>
-              <select id="status-{{ chamado.pk }}" name="status" class="form-control status-select">
+            <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="inline-form">
+              <label for="status-{{ chamado.id }}">Status</label>
+              <select id="status-{{ chamado.id }}" name="status" class="form-control status-select">
                 {% for value, label in status_choices %}
                   <option value="{{ value }}" {% if value == chamado.status %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -87,24 +127,44 @@
             </form>
 
             <div class="comments">
-              <h3>Comentarios</h3>
-              {% for comentario in chamado.comentarios.all %}
-                <div class="comment">
-                  <p>{{ comentario.texto }}</p>
-                  <small>{{ comentario.criado_em|date:"d/m/Y H:i" }}</small>
-                </div>
-              {% empty %}
+              <div class="comments__header">
+                <h3>Comentarios</h3>
+                <span class="comments__count">{{ chamado.comentarios_label }}</span>
+              </div>
+              {% for comentario in chamado.comentarios %}
+                <article class="comment comment--social">
+                  <div class="comment__avatar">{{ comentario.avatar_iniciais }}</div>
+                  <div class="comment__body">
+                    <div class="comment__bubble">
+                      <div class="comment__meta">
+                        <strong>{{ comentario.autor_exibicao }}</strong>
+                        <small>{{ comentario.tempo_relativo }} atras</small>
+                      </div>
+                      <p>{{ comentario.texto }}</p>
+                    </div>
+                    <div class="comment__actions">
+                      <span>Curtir</span>
+                      <span>Responder</span>
+                    </div>
+                  </div>
+                </article>
+              {% else %}
                 <p class="muted">Sem comentarios ate o momento.</p>
               {% endfor %}
             </div>
 
-            <form method="post" action="{% url 'fixcity:adicionar_comentario' chamado.pk %}" class="comment-form">
-              {% csrf_token %}
-              {{ comentario_form.texto }}
-              <button class="btn btn--primary" type="submit">Adicionar comentario</button>
+            <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="comment-form">
+              <div class="comment-composer">
+                <div class="comment-composer__avatar">VO</div>
+                <div class="comment-composer__fields">
+                  <input name="autor_nome" class="form-control" placeholder="Seu nome (opcional)">
+                  <textarea name="texto" class="form-control" rows="2" placeholder="Adicione um comentario..."></textarea>
+                </div>
+              </div>
+              <button class="btn btn--primary" type="submit">Publicar comentario</button>
             </form>
           </article>
-        {% empty %}
+        {% else %}
           <p class="empty-state">Nenhum chamado cadastrado ainda.</p>
         {% endfor %}
       </div>
