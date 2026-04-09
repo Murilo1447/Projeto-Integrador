@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <header class="hero">
     <div class="hero__content">
       <p class="eyebrow">Gestao urbana com base real</p>
       <h1>FixCity</h1>
-      <p class="hero__text">Mapa publico de ocorrencias com cadastro persistido em Python e banco SQLite.</p>
+      <p class="hero__text">Mapa publico de ocorrencias com cadastro persistido em Flask e banco SQLite.</p>
       <div class="hero__actions">
-        <a class="btn btn--primary" href="{% url 'fixcity:denuncias' %}">Registrar chamado</a>
+        <a class="btn btn--primary" href="{{ url_for('denuncias') }}">Registrar chamado</a>
       </div>
     </div>
     <div class="hero__stats">
@@ -56,7 +55,6 @@
         <span><i class="dot dot--pending"></i> Pendente</span>
         <span><i class="dot dot--done"></i> Resolvido</span>
       </div>
-      {{ map_data|json_script:"map-data" }}
     </section>
 
     <section class="panel">
@@ -65,20 +63,20 @@
           <p class="section-label">Painel</p>
           <h2>Chamados recentes</h2>
         </div>
-        <a class="btn btn--ghost" href="{% url 'fixcity:denuncias' %}">Abrir central</a>
+        <a class="btn btn--ghost" href="{{ url_for('denuncias') }}">Abrir central</a>
       </div>
       <div class="call-list">
         {% for chamado in chamados %}
           <article class="call-card">
             <div class="call-card__top">
-              <strong>{{ chamado.get_categoria_display }}</strong>
-              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.get_status_display }}</span>
+              <strong>{{ chamado.categoria_label }}</strong>
+              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.status_label }}</span>
             </div>
             <p>{{ chamado.descricao }}</p>
             <p class="muted">{{ chamado.endereco_completo }}</p>
-            <p class="muted">{{ chamado.comentarios.count }} comentario{{ chamado.comentarios.count|pluralize }}</p>
+            <p class="muted">{{ chamado.comentarios_label }}</p>
           </article>
-        {% empty %}
+        {% else %}
           <p class="empty-state">Nenhum chamado cadastrado ainda. Use a central para registrar o primeiro.</p>
         {% endfor %}
       </div>
@@ -86,6 +84,7 @@
   </main>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="{% static 'js/map.js' %}"></script>
+  <script id="map-data" type="application/json">{{ map_data|tojson }}</script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>
