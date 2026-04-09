@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FixCity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__content">
+      <p class="eyebrow">Gestao urbana com base real</p>
+      <h1>FixCity</h1>
+      <p class="hero__text">Mapa publico de ocorrencias com cadastro persistido em Python e banco SQLite.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="{% url 'fixcity:denuncias' %}">Registrar chamado</a>
+      </div>
+    </div>
+    <div class="hero__stats">
+      <article class="stat-card">
+        <span>Total</span>
+        <strong>{{ stats.total }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>Problemas</span>
+        <strong>{{ stats.problemas }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>Pendentes</span>
+        <strong>{{ stats.pendentes }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>Resolvidos</span>
+        <strong>{{ stats.resolvidos }}</strong>
+      </article>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="section-label">Mapa</p>
+          <h2>Ocorrencias geolocalizadas</h2>
+        </div>
+        <input id="map-search" class="search" type="search" placeholder="Buscar por categoria ou endereco">
+      </div>
+      <div id="map"></div>
+      <div class="legend">
+        <span><i class="dot dot--problem"></i> Problema</span>
+        <span><i class="dot dot--pending"></i> Pendente</span>
+        <span><i class="dot dot--done"></i> Resolvido</span>
+      </div>
+      {{ map_data|json_script:"map-data" }}
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="section-label">Painel</p>
+          <h2>Chamados recentes</h2>
+        </div>
+        <a class="btn btn--ghost" href="{% url 'fixcity:denuncias' %}">Abrir central</a>
+      </div>
+      <div class="call-list">
+        {% for chamado in chamados %}
+          <article class="call-card">
+            <div class="call-card__top">
+              <strong>{{ chamado.get_categoria_display }}</strong>
+              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.get_status_display }}</span>
+            </div>
+            <p>{{ chamado.descricao }}</p>
+            <p class="muted">{{ chamado.endereco_completo }}</p>
+            <p class="muted">{{ chamado.comentarios.count }} comentario{{ chamado.comentarios.count|pluralize }}</p>
+          </article>
+        {% empty %}
+          <p class="empty-state">Nenhum chamado cadastrado ainda. Use a central para registrar o primeiro.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="{% static 'js/map.js' %}"></script>
+</body>
+</html>

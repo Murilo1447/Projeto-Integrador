@@ -1,0 +1,114 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central de Chamados | FixCity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="subhero">
+    <a class="btn btn--ghost" href="{% url 'fixcity:home' %}">Voltar ao mapa</a>
+    <div>
+      <p class="eyebrow">Central operacional</p>
+      <h1>Registro e acompanhamento</h1>
+      <p class="hero__text">As regras de validacao agora rodam no backend Django, com persistencia em banco.</p>
+    </div>
+  </header>
+
+  <main class="page-shell page-shell--wide">
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="section-label">Novo chamado</p>
+          <h2>Registrar ocorrencia</h2>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="message message--{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="form-grid">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="{% if field.name == 'descricao' %}field field--full{% else %}field{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}
+              <small class="field-error">{{ error }}</small>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <div class="field field--full">
+          <button class="btn btn--primary" type="submit">Registrar chamado</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="section-label">Acompanhamento</p>
+          <h2>Chamados cadastrados</h2>
+        </div>
+      </div>
+
+      <div class="call-list">
+        {% for chamado in chamados %}
+          <article class="call-card call-card--detailed">
+            <div class="call-card__top">
+              <div>
+                <strong>{{ chamado.get_categoria_display }}</strong>
+                <p class="muted">{{ chamado.endereco_completo }}</p>
+              </div>
+              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.get_status_display }}</span>
+            </div>
+
+            <p>{{ chamado.descricao }}</p>
+
+            <form method="post" action="{% url 'fixcity:atualizar_status' chamado.pk %}" class="inline-form">
+              {% csrf_token %}
+              <label for="status-{{ chamado.pk }}">Status</label>
+              <select id="status-{{ chamado.pk }}" name="status" class="form-control status-select">
+                {% for value, label in status_choices %}
+                  <option value="{{ value }}" {% if value == chamado.status %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn--ghost" type="submit">Atualizar</button>
+            </form>
+
+            <div class="comments">
+              <h3>Comentarios</h3>
+              {% for comentario in chamado.comentarios.all %}
+                <div class="comment">
+                  <p>{{ comentario.texto }}</p>
+                  <small>{{ comentario.criado_em|date:"d/m/Y H:i" }}</small>
+                </div>
+              {% empty %}
+                <p class="muted">Sem comentarios ate o momento.</p>
+              {% endfor %}
+            </div>
+
+            <form method="post" action="{% url 'fixcity:adicionar_comentario' chamado.pk %}" class="comment-form">
+              {% csrf_token %}
+              {{ comentario_form.texto }}
+              <button class="btn btn--primary" type="submit">Adicionar comentario</button>
+            </form>
+          </article>
+        {% empty %}
+          <p class="empty-state">Nenhum chamado cadastrado ainda.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>
