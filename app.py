@@ -206,6 +206,14 @@ def create_app(test_config: dict | None = None) -> Flask:
         ]
         return render_template("fixcity/index.html", chamados=chamados, stats=stats, map_data=map_data)
 
+    @app.route("/login/")
+    def login():
+        return render_template("fixcity/login.html")
+
+    @app.route("/cadastro/")
+    def cadastro():
+        return render_template("fixcity/cadastro.html")
+
     @app.route("/denuncias/", methods=["GET", "POST"])
     def denuncias():
         form_data = form_defaults()

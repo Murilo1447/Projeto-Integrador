@@ -26,6 +26,8 @@ class FixCityFlaskTests(unittest.TestCase):
     def test_paginas_principais_carregam(self):
         self.assertEqual(self.client.get("/").status_code, 200)
         self.assertEqual(self.client.get("/denuncias/").status_code, 200)
+        self.assertEqual(self.client.get("/login/").status_code, 200)
+        self.assertEqual(self.client.get("/cadastro/").status_code, 200)
 
     @patch("app.geocodificar_endereco", return_value=(None, None))
     @patch(

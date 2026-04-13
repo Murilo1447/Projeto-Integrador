@@ -1,134 +1,118 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FixCity</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
-
 <body>
-
   <header>
-
     <div class="header-texto">
       <div class="logo-titulo">
-        <img src="/templates/fixcity/images/logo.png" alt="Logo FixCity" class="logo">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
         <h1>FixCity</h1>
       </div>
       <p>Plataforma oficial de registro de problemas urbanos</p>
     </div>
 
     <div class="botoes-header">
-      <button onclick="irParaSobre()">Sobre</button>
-      <button onclick="window.location.href='denuncias.html'">Denúncias</button>
-      <button onclick="window.location.href='cadastro.html'">Cadastro</button>
-      <button onclick="window.location.href='login.html'">Login</button>
+      <button type="button" onclick="irParaSobre()">Sobre</button>
+      <button type="button" onclick="window.location.href='{{ url_for('denuncias') }}'">Denuncias</button>
+      <button type="button" onclick="window.location.href='{{ url_for('cadastro') }}'">Cadastro</button>
+      <button type="button" onclick="window.location.href='{{ url_for('login') }}'">Login</button>
     </div>
-
   </header>
 
-
-  </div>
-
   <div class="container">
-
-
-
-
-    <!-- Mapa -->
     <div class="card mapa-container">
-      <h2>Mapa de Situações</h2>
-        <div class="search-container">
-    <input type="text" placeholder="Buscar localização..." class="search">
-    <div class="sugestoes-box" id="sugestoes"></div>
-</div>
+      <div class="painel-topo">
+        <div>
+          <h2>Mapa de Situações</h2>
+          <p>{{ stats.total }} chamados registrados pela comunidade.</p>
+        </div>
+        <div class="resumo-status">
+          <span class="resumo-badge is-problema">{{ stats.problemas }} problemas</span>
+          <span class="resumo-badge is-pendente">{{ stats.pendentes }} pendentes</span>
+          <span class="resumo-badge is-resolvido">{{ stats.resolvidos }} resolvidos</span>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <input type="text" placeholder="Buscar localizacao..." class="search" autocomplete="off">
+        <div class="sugestoes-box" id="sugestoes"></div>
+      </div>
+
       <div id="map"></div>
 
-      <!-- Legenda -->
       <div class="legenda">
         <div><span class="dot green"></span> Resolvido</div>
         <div><span class="dot yellow"></span> Em andamento</div>
-        <div><span class="dot red"></span> Não resolvido</div>
+        <div><span class="dot red"></span> Nao resolvido</div>
       </div>
+
+      {% if not map_data %}
+        <p class="mapa-vazio">Ainda nao existem chamados com coordenadas para exibir no mapa.</p>
+      {% endif %}
     </div>
-
   </div>
-
-
 
   <div class="cards-apresentacao">
-
     <div class="card-apresentacao">
-      <h3> Registrar Problemas</h3>
+      <h3>Registrar Problemas</h3>
       <p>
-        Informe buracos, lixo, iluminação ou qualquer problema urbano de forma rápida e simples.
+        Informe buracos, lixo, iluminacao ou qualquer problema urbano de forma rapida e simples.
       </p>
     </div>
 
     <div class="card-apresentacao">
-      <h3>🗺 Visualizar no Mapa</h3>
+      <h3>Visualizar no Mapa</h3>
       <p>
-        Acompanhe todas as ocorrências registradas diretamente no mapa da cidade.
+        Acompanhe todas as ocorrencias registradas diretamente no mapa da cidade e abra os detalhes com um clique.
       </p>
     </div>
 
     <div class="card-apresentacao">
-      <h3>🤝 Impacto na Comunidade</h3>
+      <h3>Impacto na Comunidade</h3>
       <p>
-        Contribua para uma cidade melhor ajudando a identificar e resolver problemas urbanos.
+        Os chamados recebem comentarios e mudanca de status para acompanhar o andamento das acoes na cidade.
       </p>
     </div>
-
   </div>
 
-
-
-
-
   <footer class="footer">
-
     <div class="footer-container">
-
-      <!-- SOBRE NÓS -->
       <div class="footer-col">
-        <h4>Sobre Nós</h4>
+        <h4>Sobre Nos</h4>
         <p>
-          O FixCity é uma plataforma digital desenvolvida para facilitar
-          o registro e acompanhamento de problemas urbanos.
-          Nosso objetivo é fortalecer a participação cidadã
-          e contribuir para cidades mais organizadas e eficientes.
+          O FixCity e uma plataforma digital desenvolvida para facilitar o registro e acompanhamento de problemas urbanos.
+          Nosso objetivo e fortalecer a participacao cidada e contribuir para cidades mais organizadas e eficientes.
         </p>
       </div>
 
-      <!-- CONTATO -->
       <div class="footer-col">
         <h4>Contato</h4>
         <p>Email: contato@fixcity.com</p>
         <p>Telefone: (11) 99999-9999</p>
-        <p>São Paulo - SP</p>
+        <p>Sao Paulo - SP</p>
       </div>
 
-      <!-- PLATAFORMA -->
       <div class="footer-col">
         <h4>Plataforma</h4>
-        <p><a href="denuncias.html">Registrar denúncia</a></p>
-        <p><a href="login.html">Login</a></p>
-        <p><a href="cadastro.html">Cadastro</a></p>
+        <p><a href="{{ url_for('denuncias') }}">Registrar denuncia</a></p>
+        <p><a href="{{ url_for('login') }}">Login</a></p>
+        <p><a href="{{ url_for('cadastro') }}">Cadastro</a></p>
       </div>
-
     </div>
 
     <div class="footer-bottom">
-      © <span id="ano"></span> FixCity. Todos os direitos reservados.
+      &copy; <span id="ano"></span> FixCity. Todos os direitos reservados.
     </div>
-
   </footer>
 
+  <script id="map-data" type="application/json">{{ map_data | tojson }}</script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
-
 </html>
