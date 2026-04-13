@@ -1,174 +1,107 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Central de Chamados | FixCity</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FixCity</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <header class="subhero">
-    <a class="btn btn--ghost" href="{{ url_for('home') }}">Voltar ao mapa</a>
-    <div>
-      <p class="eyebrow">Central operacional</p>
-      <h1>Registro e acompanhamento</h1>
-      <p class="hero__text">As regras de validacao agora rodam no backend Flask, com persistencia em banco.</p>
-    </div>
-  </header>
 
-  <main class="page-shell page-shell--wide">
-    <section class="panel">
-      <div class="panel__header">
-        <div>
-          <p class="section-label">Novo chamado</p>
-          <h2>Registrar ocorrencia</h2>
-        </div>
-      </div>
+    <header>
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="messages">
-            {% for category, message in messages %}
-              <div class="message message--{{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-
-      <form method="post" class="form-grid">
-        <div class="field">
-          <label for="cpf">CPF</label>
-          <input id="cpf" name="cpf" class="form-control" value="{{ form_data.cpf }}" placeholder="CPF do solicitante">
-          {% if errors.get("cpf") %}<small class="field-error">{{ errors.get("cpf") }}</small>{% endif %}
-        </div>
-        <div class="field">
-          <label for="nome">Nome</label>
-          <input id="nome" name="nome" class="form-control" value="{{ form_data.nome }}" placeholder="Nome (opcional)">
-        </div>
-        <div class="field">
-          <label for="email">E-mail</label>
-          <input id="email" name="email" class="form-control" value="{{ form_data.email }}" placeholder="E-mail (opcional)">
-          {% if errors.get("email") %}<small class="field-error">{{ errors.get("email") }}</small>{% endif %}
-        </div>
-        <div class="field">
-          <label for="categoria">Categoria</label>
-          <select id="categoria" name="categoria" class="form-control">
-            <option value="">Selecione a categoria</option>
-            {% for value, label in category_choices %}
-              <option value="{{ value }}" {% if form_data.categoria == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-          {% if errors.get("categoria") %}<small class="field-error">{{ errors.get("categoria") }}</small>{% endif %}
-        </div>
-        <div class="field">
-          <label for="cep">CEP</label>
-          <input id="cep" name="cep" class="form-control" value="{{ form_data.cep }}" placeholder="CEP">
-          {% if errors.get("cep") %}<small class="field-error">{{ errors.get("cep") }}</small>{% endif %}
-        </div>
-        <div class="field">
-          <label for="rua">Rua</label>
-          <input id="rua" name="rua" class="form-control" value="{{ form_data.rua }}" placeholder="Rua">
-        </div>
-        <div class="field">
-          <label for="bairro">Bairro</label>
-          <input id="bairro" name="bairro" class="form-control" value="{{ form_data.bairro }}" placeholder="Bairro">
-        </div>
-        <div class="field">
-          <label for="cidade">Cidade</label>
-          <input id="cidade" name="cidade" class="form-control" value="{{ form_data.cidade }}" placeholder="Cidade">
-        </div>
-        <div class="field">
-          <label for="numero">Numero</label>
-          <input id="numero" name="numero" class="form-control" value="{{ form_data.numero }}" placeholder="Numero">
-        </div>
-        <div class="field field--full">
-          <label for="descricao">Descricao</label>
-          <textarea id="descricao" name="descricao" class="form-control" rows="4" placeholder="Descreva o problema encontrado">{{ form_data.descricao }}</textarea>
-          {% if errors.get("descricao") %}<small class="field-error">{{ errors.get("descricao") }}</small>{% endif %}
-        </div>
-        <div class="field field--full">
-          <button class="btn btn--primary" type="submit">Registrar chamado</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="panel">
-      <div class="panel__header">
-        <div>
-          <p class="section-label">Acompanhamento</p>
-          <h2>Chamados cadastrados</h2>
-        </div>
-      </div>
-
-      <div class="call-list">
-        {% for chamado in chamados %}
-          <article class="call-card call-card--detailed">
-            <div class="call-card__top">
-              <div>
-                <strong>{{ chamado.categoria_label }}</strong>
-                <p class="muted">{{ chamado.endereco_completo }}</p>
-              </div>
-              <span class="status-chip status-chip--{{ chamado.status_css }}">{{ chamado.status_label }}</span>
+        <div class="header-texto">
+            <div class="logo-titulo">
+                <img src="/templates/fixcity/images/logo.png" alt="Logo FixCity" class="logo">
+                <h1>FixCity</h1>
             </div>
+            <p>Registrar novo problema urbano</p>
+        </div>
 
-            <p>{{ chamado.descricao }}</p>
+        <div class="botoes-header">
+            <button onclick="window.location.href='index.html'">
+                Voltar
+            </button>
+        </div>
 
-            <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="inline-form">
-              <label for="status-{{ chamado.id }}">Status</label>
-              <select id="status-{{ chamado.id }}" name="status" class="form-control status-select">
-                {% for value, label in status_choices %}
-                  <option value="{{ value }}" {% if value == chamado.status %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-              <button class="btn btn--ghost" type="submit">Atualizar</button>
-            </form>
+    </header>
 
-            <div class="comments">
-              <div class="comments__header">
-                <h3>Comentarios</h3>
-                <span class="comments__count">{{ chamado.comentarios_label }}</span>
-              </div>
-              {% for comentario in chamado.comentarios %}
-                <article class="comment comment--social">
-                  <div class="comment__avatar">{{ comentario.avatar_iniciais }}</div>
-                  <div class="comment__body">
-                    <div class="comment__bubble">
-                      <div class="comment__meta">
-                        <strong>{{ comentario.autor_exibicao }}</strong>
-                        <small>{{ comentario.tempo_relativo }} atras</small>
-                      </div>
-                      <p>{{ comentario.texto }}</p>
-                    </div>
-                    <div class="comment__actions">
-                      <span>Curtir</span>
-                      <span>Responder</span>
-                    </div>
-                  </div>
-                </article>
-              {% else %}
-                <p class="muted">Sem comentarios ate o momento.</p>
-              {% endfor %}
-            </div>
+    <div class="container">
 
-            <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="comment-form">
-              <div class="comment-composer">
-                <div class="comment-composer__avatar">VO</div>
-                <div class="comment-composer__fields">
-                  <input name="autor_nome" class="form-control" placeholder="Seu nome (opcional)">
-                  <textarea name="texto" class="form-control" rows="2" placeholder="Adicione um comentario..."></textarea>
+        <div class="box">
+            <h2>Novo Chamado</h2>
+
+            <form id="form">
+
+
+                <input type="text" id="nome" placeholder="Nome (opcional)">
+                <input type="email" id="email" placeholder="Email (opcional)">
+                <div class="upload-container">
+                     <span class="emoji-upload">📎</span>
+                    <label for="foto" class="upload-label">
+                        Selecionar imagem
+                    </label>
+                    <input type="file" id="foto" accept="image/*">
+                    <span id="nomeArquivo" class="nome-arquivo"></span>
                 </div>
-              </div>
-              <button class="btn btn--primary" type="submit">Publicar comentario</button>
+
+                <select id="categoria" required>
+                    <option value="">Selecione o problema</option>
+                    <option>Buraco</option>
+                    <option>Lixo</option>
+                    <option>Iluminação</option>
+                    <option>Outro</option>
+                </select>
+
+                <input type="text" id="cep" placeholder="Digite o CEP" onblur="buscarCEP()">
+
+                <input type="text" id="rua" placeholder="Rua" readonly>
+                <input type="text" id="bairro" placeholder="Bairro" readonly>
+                <input type="text" id="cidade" placeholder="Cidade" readonly>
+
+                <input type="text" id="numero" placeholder="Número da residência">
+
+                <textarea id="descricao" placeholder="Comentário sobre o problema..." required></textarea>
+
+                <button type="submit">Registrar Chamado</button>
+
             </form>
-          </article>
-        {% else %}
-          <p class="empty-state">Nenhum chamado cadastrado ainda.</p>
-        {% endfor %}
-      </div>
-    </section>
-  </main>
+        </div>
+
+        <div class="box">
+            <h2>Denúncia</h2>
+            <div id="lista"></div>
+        </div>
+
+    </div>
+
+    <script>
+        function buscarCEP() {
+            let cep = document.getElementById("cep").value.replace(/\D/g, "");
+
+            if (cep.length !== 8) {
+                alert("Digite um CEP válido");
+                return;
+            }
+
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(dados => {
+                    document.getElementById("rua").value = dados.logradouro;
+                    document.getElementById("bairro").value = dados.bairro;
+                    document.getElementById("cidade").value = dados.localidade;
+                });
+        }
+
+
+        function voltar() {
+            window.location.href = "index 1.html";
+        }
+
+    </script>
+    <script src="denuncias.js"></script>
 </body>
+
 </html>
