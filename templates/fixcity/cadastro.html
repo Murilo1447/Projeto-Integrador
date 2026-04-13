@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cadastro - FixCity</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2>Criar Conta</h2>
+
+      <form id="formCadastro">
+        <input type="text" id="nome" placeholder="Nome completo" required>
+        <input type="text" id="telefone" placeholder="Telefone" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="senha" placeholder="Senha" required>
+
+        <button type="submit">Cadastrar</button>
+      </form>
+
+      <div class="auth-footer">
+        Já possui conta?
+        <a href="login.html">Entrar</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+
+</html>
