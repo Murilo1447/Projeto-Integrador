@@ -11,11 +11,49 @@
     <div class="auth-card">
       <h2>Criar Conta</h2>
 
-      <form id="formCadastro">
-        <input type="text" id="nome" placeholder="Nome completo" required>
-        <input type="text" id="telefone" placeholder="Telefone com DDD" required>
-        <input type="email" id="email" placeholder="Email" required>
-        <input type="password" id="senha" placeholder="Senha" required>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mensagens">
+            {% for category, message in messages %}
+              <div class="mensagem {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form id="formCadastro" method="post" enctype="multipart/form-data">
+        <div class="avatar-preview-card">
+          <div class="avatar avatar-grande avatar-preview-shell">
+            <img data-avatar-image hidden alt="Preview da foto de perfil">
+            <span data-avatar-fallback>+</span>
+          </div>
+          <div>
+            <label for="foto_perfil">Foto de perfil</label>
+            <input type="file" id="foto_perfil" name="foto_perfil" accept="image/png,image/jpeg,image/webp,image/gif">
+            {% if errors.foto_perfil %}<small class="field-error">{{ errors.foto_perfil }}</small>{% endif %}
+          </div>
+        </div>
+
+        <label for="nome">Nome completo</label>
+        <input type="text" id="nome" name="nome" placeholder="Nome completo" value="{{ form_data.nome }}" required>
+        {% if errors.nome %}<small class="field-error">{{ errors.nome }}</small>{% endif %}
+
+        <label for="cpf">CPF</label>
+        <input type="text" id="cpf" name="cpf" placeholder="CPF" value="{{ form_data.cpf }}" required>
+        {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
+
+        <label for="telefone">Telefone com DDD</label>
+        <input type="text" id="telefone" name="telefone" placeholder="Telefone com DDD" value="{{ form_data.telefone }}" required>
+        {% if errors.telefone %}<small class="field-error">{{ errors.telefone }}</small>{% endif %}
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="Email" value="{{ form_data.email }}" required>
+        {% if errors.email %}<small class="field-error">{{ errors.email }}</small>{% endif %}
+
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" name="senha" placeholder="Senha" required>
+        {% if errors.senha %}<small class="field-error">{{ errors.senha }}</small>{% endif %}
+
         <button type="submit">Cadastrar</button>
       </form>
 
@@ -26,13 +64,6 @@
     </div>
   </div>
 
-  <script>
-    window.fixcityRoutes = {
-      home: {{ url_for('home') | tojson }},
-      login: {{ url_for('login') | tojson }},
-      cadastro: {{ url_for('cadastro') | tojson }}
-    };
-  </script>
   <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

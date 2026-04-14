@@ -18,6 +18,22 @@
 
     <div class="botoes-header">
       <button type="button" onclick="window.location.href='{{ url_for('home') }}'">Voltar</button>
+      <div class="usuario-header">
+        <div class="avatar">
+          {% if current_user.foto_perfil %}
+            <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
+          {% else %}
+            <span>{{ current_user.nome[:2].upper() }}</span>
+          {% endif %}
+        </div>
+        <div class="usuario-header-info">
+          <strong>{{ current_user.nome }}</strong>
+          <span>{{ current_user.email }}</span>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('logout') }}">
+        <button type="submit" class="btn-secundario">Sair</button>
+      </form>
     </div>
   </header>
 
@@ -36,16 +52,21 @@
       {% endwith %}
 
       <form method="post">
-        <label for="cpf">CPF</label>
-        <input type="text" id="cpf" name="cpf" placeholder="Digite seu CPF" value="{{ form_data.cpf }}" required>
+        <div class="perfil-card">
+          <div class="avatar avatar-grande">
+            {% if current_user.foto_perfil %}
+              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
+            {% else %}
+              <span>{{ current_user.nome[:2].upper() }}</span>
+            {% endif %}
+          </div>
+          <div>
+            <strong>{{ current_user.nome }}</strong>
+            <p class="meta-chamado">{{ current_user.email }}</p>
+            <p class="meta-chamado">CPF: {{ current_user.cpf }}</p>
+          </div>
+        </div>
         {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
-
-        <label for="nome">Nome (opcional)</label>
-        <input type="text" id="nome" name="nome" placeholder="Nome" value="{{ form_data.nome }}">
-
-        <label for="email">Email (opcional)</label>
-        <input type="email" id="email" name="email" placeholder="Email" value="{{ form_data.email }}">
-        {% if errors.email %}<small class="field-error">{{ errors.email }}</small>{% endif %}
 
         <label for="categoria">Categoria</label>
         <select id="categoria" name="categoria" required>
@@ -87,14 +108,29 @@
         <div class="lista-chamados">
           {% for chamado in chamados %}
             <div class="card-chamado">
+              <div class="chamado-topo">
+                <div class="perfil-inline">
+                  <div class="avatar">
+                    {% if chamado.avatar_url %}
+                      <img src="{{ chamado.avatar_url }}" alt="Foto de perfil de {{ chamado.autor_exibicao }}">
+                    {% else %}
+                      <span>{{ chamado.avatar_iniciais }}</span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <strong>{{ chamado.autor_exibicao }}</strong>
+                    <span class="meta-mini">{{ chamado.tempo_relativo }}</span>
+                  </div>
+                </div>
+                <span class="status {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+              </div>
+
               <strong>{{ chamado.categoria_label }}</strong>
               <p>{{ chamado.descricao }}</p>
               <p class="meta-chamado">Local: {{ chamado.endereco_completo }}</p>
-              {% if chamado.nome or chamado.email %}
-                <p class="meta-chamado">Contato: {{ chamado.nome or 'Anonimo' }}{% if chamado.email %} - {{ chamado.email }}{% endif %}</p>
+              {% if chamado.email %}
+                <p class="meta-chamado">Contato: {{ chamado.email }}</p>
               {% endif %}
-
-              <span class="status {{ chamado.status_css }}">{{ chamado.status_label }}</span>
 
               <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="form-status">
                 <div class="campo-status">
@@ -113,7 +149,16 @@
                   {% for comentario in chamado.comentarios %}
                     <div class="comentario">
                       <div class="comentario-topo">
-                        <strong>{{ comentario.autor_exibicao }}</strong>
+                        <div class="perfil-inline">
+                          <div class="avatar avatar-pequeno">
+                            {% if comentario.avatar_url %}
+                              <img src="{{ comentario.avatar_url }}" alt="Foto de perfil de {{ comentario.autor_exibicao }}">
+                            {% else %}
+                              <span>{{ comentario.avatar_iniciais }}</span>
+                            {% endif %}
+                          </div>
+                          <strong>{{ comentario.autor_exibicao }}</strong>
+                        </div>
                         <span>{{ comentario.tempo_relativo }}</span>
                       </div>
                       <p>{{ comentario.texto }}</p>
@@ -125,11 +170,8 @@
               {% endif %}
 
               <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="form-comentario">
-                <label for="autor-{{ chamado.id }}">Seu nome</label>
-                <input type="text" id="autor-{{ chamado.id }}" name="autor_nome" placeholder="Nome (opcional)">
-
                 <label for="comentario-{{ chamado.id }}">Novo comentario</label>
-                <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario" required></textarea>
+                <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario como {{ current_user.nome }}" required></textarea>
 
                 <button type="submit">Enviar comentario</button>
               </form>

@@ -11,9 +11,23 @@
     <div class="auth-card">
       <h2>Entrar</h2>
 
-      <form id="formLogin">
-        <input type="email" id="loginEmail" placeholder="Email" required>
-        <input type="password" id="loginSenha" placeholder="Senha" required>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mensagens">
+            {% for category, message in messages %}
+              <div class="mensagem {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form id="formLogin" method="post">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" name="email" placeholder="Email" value="{{ form_data.email }}" required>
+
+        <label for="loginSenha">Senha</label>
+        <input type="password" id="loginSenha" name="senha" placeholder="Senha" required>
+
         <button type="submit">Entrar</button>
       </form>
 
@@ -23,14 +37,5 @@
       </div>
     </div>
   </div>
-
-  <script>
-    window.fixcityRoutes = {
-      home: {{ url_for('home') | tojson }},
-      login: {{ url_for('login') | tojson }},
-      cadastro: {{ url_for('cadastro') | tojson }}
-    };
-  </script>
-  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

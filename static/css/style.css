@@ -61,6 +61,7 @@ header {
   transform: translateY(-50%);
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
 .btn-voltar {
@@ -97,6 +98,10 @@ button:hover {
   display: flex;
   gap: 30px;
   padding: 40px;
+}
+
+.container-mensagens {
+  padding-bottom: 0;
 }
 
 .card,
@@ -220,6 +225,105 @@ textarea {
   color: #666;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.meta-mini {
+  display: block;
+  color: #7a7a7a;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.usuario-header,
+.perfil-inline,
+.perfil-card,
+.chamado-topo {
+  display: flex;
+  align-items: center;
+}
+
+.usuario-header,
+.perfil-inline,
+.perfil-card {
+  gap: 12px;
+}
+
+.usuario-header {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 8px 12px 8px 8px;
+}
+
+.usuario-header-info {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.usuario-header-info span {
+  font-size: 12px;
+  opacity: 0.82;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f3d27a, #d97f5f);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-pequeno {
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+}
+
+.avatar-grande {
+  width: 62px;
+  height: 62px;
+  font-size: 18px;
+}
+
+.avatar-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.avatar-preview-shell img[hidden] {
+  display: none;
+}
+
+.perfil-card {
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.chamado-topo {
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
 }
 
 .form-status {
@@ -535,6 +639,16 @@ textarea {
     justify-content: center;
     flex-wrap: wrap;
     margin-top: 18px;
+  }
+
+  .usuario-header {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .chamado-topo {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
