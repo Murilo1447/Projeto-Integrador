@@ -21,3 +21,28 @@ if (fileInput && previewImage && previewFallback) {
     reader.readAsDataURL(file);
   });
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    const inputFoto = document.getElementById("foto_perfil");
+    const previewImg = document.querySelector("[data-avatar-image]");
+    const fallbackSvg = document.querySelector("[data-avatar-fallback]");
+
+    if (inputFoto) {
+        inputFoto.addEventListener("change", function () {
+            const arquivo = this.files[0];
+
+            if (arquivo) {
+                const leitor = new FileReader();
+
+                leitor.onload = function (e) {
+                    // Mostra a imagem e esconde o SVG
+                    previewImg.src = e.target.result;
+                    previewImg.hidden = false;
+                    if (fallbackSvg) fallbackSvg.style.display = "none";
+                };
+
+                leitor.readAsDataURL(arquivo);
+            }
+        });
+    }
+});

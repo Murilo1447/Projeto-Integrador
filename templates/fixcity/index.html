@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FixCity</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
@@ -20,18 +21,21 @@
     <div class="botoes-header">
       <button type="button" onclick="irParaSobre()">Sobre</button>
       <button type="button" onclick="window.location.href='{{ url_for('denuncias') }}'">Denuncias</button>
+      
       {% if current_user %}
-        <div class="usuario-header">
+        <div class="usuario-header" id="abrir-perfil" style="cursor: pointer;">
           <div class="avatar">
             {% if current_user.foto_perfil %}
-              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
+              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil">
             {% else %}
-              <span>{{ current_user.nome[:2].upper() }}</span>
+              <svg class="avatar-padrao-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#ccc"/>
+              </svg>
             {% endif %}
           </div>
           <div class="usuario-header-info">
             <strong>{{ current_user.nome }}</strong>
-            <span>conectado</span>
+            <span>Ver perfil</span>
           </div>
         </div>
         <form method="post" action="{{ url_for('logout') }}">
@@ -43,6 +47,23 @@
       {% endif %}
     </div>
   </header>
+
+  <section class="section-status">
+    <div class="status-container">
+      <div class="status-card problema-card">
+        <h3>Problemas</h3>
+        <span id="total-problemas">0</span>
+      </div>
+      <div class="status-card pendente-card">
+        <h3>Em andamento</h3>
+        <span id="total-pendentes">0</span>
+      </div>
+      <div class="status-card resolvido-card">
+        <h3>Resolvidos</h3>
+        <span id="total-resolvidos">0</span>
+      </div>
+    </div>
+  </section>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -58,79 +79,77 @@
     {% endif %}
   {% endwith %}
 
-  <div class="container">
-    <div class="card mapa-container">
-      <div class="painel-topo">
-        <div>
-          <h2>Mapa de Situações</h2>
-          <p>{{ stats.total }} chamados registrados pela comunidade.</p>
+  <section class="section-mapa">
+    <div class="container">
+      <div class="box mapa-container">
+        <h2>Mapa de Ocorrências</h2>
+        <div class="search-container">
+          <input type="text" class="search" placeholder="Buscar localização ou chamado..." />
+          <div id="sugestoes" class="sugestoes-box"></div>
         </div>
-        <div class="resumo-status">
-          <span class="resumo-badge is-problema">{{ stats.problemas }} problemas</span>
-          <span class="resumo-badge is-pendente">{{ stats.pendentes }} pendentes</span>
-          <span class="resumo-badge is-resolvido">{{ stats.resolvidos }} resolvidos</span>
+        <div class="map-wrapper">
+          <div id="map"></div>
+          <div id="map-overlay">Clique no mapa para ativar o zoom</div>
+        </div>
+        <div class="map-button-area">
+          <button id="toggle-map">Expandir mapa</button>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="search-container">
-        <input type="text" placeholder="Buscar localizacao..." class="search" autocomplete="off">
-        <div class="sugestoes-box" id="sugestoes"></div>
+  <section class="apresentacao-bloco bloco-1">
+    <div class="apresentacao-conteudo">
+      <h2>Acompanhe em Tempo Real</h2>
+      <p>Visualize todas as ocorrências diretamente no mapa e acompanhe a mudança de status.</p>
+    </div>
+  </section>
+
+  <section class="apresentacao-bloco bloco-2">
+    <div class="apresentacao-conteudo">
+      <h2>Registre Problemas na Sua Cidade</h2>
+      <p>Informe buracos, iluminação pública ou lixo. Melhore sua cidade.</p>
+    </div>
+  </section>
+
+  <section class="apresentacao-bloco bloco-3">
+    <div class="apresentacao-conteudo">
+      <h2>Impacto Coletivo</h2>
+      <p>Comentários e resolução colaborativa tornam a cidade mais eficiente.</p>
+    </div>
+  </section>
+
+  <div id="modal-perfil" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3>Seu Perfil</h3>
+      <div class="avatar avatar-gigante">
+        {% if current_user.foto_perfil %}
+          <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto Grande">
+        {% else %}
+          <svg class="avatar-padrao-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#ccc"/>
+          </svg>
+        {% endif %}
       </div>
-
-      <div id="map"></div>
-
-      <div class="legenda">
-        <div><span class="dot green"></span> Resolvido</div>
-        <div><span class="dot yellow"></span> Em andamento</div>
-        <div><span class="dot red"></span> Nao resolvido</div>
-      </div>
-
-      {% if not map_data %}
-        <p class="mapa-vazio">Ainda nao existem chamados com coordenadas para exibir no mapa.</p>
-      {% endif %}
+      <form action="#" method="POST" enctype="multipart/form-data">
+        <label for="alterar_foto" class="btn-alterar">Alterar Foto de Perfil</label>
+        <input type="file" id="alterar_foto" name="foto_perfil" hidden onchange="this.form.submit()">
+      </form>
     </div>
   </div>
 
-  <div class="cards-apresentacao">
-    <div class="card-apresentacao">
-      <h3>Registrar Problemas</h3>
-      <p>
-        Informe buracos, lixo, iluminacao ou qualquer problema urbano de forma rapida e simples.
-      </p>
-    </div>
-
-    <div class="card-apresentacao">
-      <h3>Visualizar no Mapa</h3>
-      <p>
-        Acompanhe todas as ocorrencias registradas diretamente no mapa da cidade e abra os detalhes com um clique.
-      </p>
-    </div>
-
-    <div class="card-apresentacao">
-      <h3>Impacto na Comunidade</h3>
-      <p>
-        Os chamados recebem comentarios e mudanca de status para acompanhar o andamento das acoes na cidade.
-      </p>
-    </div>
-  </div>
-
-  <footer class="footer">
+  <footer class="footer" id="rodape">
     <div class="footer-container">
       <div class="footer-col">
         <h4>Sobre Nos</h4>
-        <p>
-          O FixCity e uma plataforma digital desenvolvida para facilitar o registro e acompanhamento de problemas urbanos.
-          Nosso objetivo e fortalecer a participacao cidada e contribuir para cidades mais organizadas e eficientes.
-        </p>
+        <p>O FixCity e uma plataforma digital desenvolvida para facilitar o registro de problemas urbanos.</p>
       </div>
-
       <div class="footer-col">
         <h4>Contato</h4>
         <p>Email: contato@fixcity.com</p>
         <p>Telefone: (11) 99999-9999</p>
-        <p>Sao Paulo - SP</p>
       </div>
-
       <div class="footer-col">
         <h4>Plataforma</h4>
         <p><a href="{{ url_for('denuncias') }}">Registrar denuncia</a></p>
@@ -138,7 +157,6 @@
         <p><a href="{{ url_for('cadastro') }}">Cadastro</a></p>
       </div>
     </div>
-
     <div class="footer-bottom">
       &copy; <span id="ano"></span> FixCity. Todos os direitos reservados.
     </div>
