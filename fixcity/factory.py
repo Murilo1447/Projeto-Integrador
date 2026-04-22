@@ -6,7 +6,7 @@ from .auth import inject_user, load_logged_in_user
 from .config import default_app_config
 from .db import close_db
 from .views.auth_views import cadastro, login, logout
-from .views.main_views import adicionar_comentario_view, atualizar_status, denuncias, home
+from .views.main_views import adicionar_comentario_view, alternar_upvote_view, atualizar_status, denuncias, home
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -47,6 +47,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         view_func=adicionar_comentario_view,
         methods=["POST"],
         endpoint="adicionar_comentario",
+    )
+    app.add_url_rule(
+        "/denuncias/<int:pk>/upvote/",
+        view_func=alternar_upvote_view,
+        methods=["POST"],
+        endpoint="alternar_upvote",
     )
 
     return app

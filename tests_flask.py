@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app import create_app
+from fixcity.db import get_db
 from fixcity.services.auth_service import buscar_usuario_por_email
 
 
@@ -29,12 +30,12 @@ class FixCityFlaskTests(unittest.TestCase):
             Path(upload_path).unlink(missing_ok=True)
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def cadastrar_usuario(self, com_foto=False):
+    def cadastrar_usuario(self, com_foto=False, nome="Maria da Silva", cpf="52998224725", email="maria@example.com"):
         data = {
-            "nome": "Maria da Silva",
-            "cpf": "52998224725",
+            "nome": nome,
+            "cpf": cpf,
             "telefone": "11999999999",
-            "email": "maria@example.com",
+            "email": email,
             "senha": "senha123",
         }
         if com_foto:
@@ -44,14 +45,14 @@ class FixCityFlaskTests(unittest.TestCase):
 
         if com_foto:
             with self.app.app_context():
-                usuario = buscar_usuario_por_email("maria@example.com")
+                usuario = buscar_usuario_por_email(email)
                 if usuario and usuario["foto_perfil"]:
                     self.created_uploads.append(Path(self.app.static_folder) / usuario["foto_perfil"])
 
         return response
 
-    def criar_chamado_autenticado(self):
-        with patch("fixcity.services.chamado_service.geocodificar_endereco", return_value=(None, None)), patch(
+    def criar_chamado_autenticado(self, coords=(None, None)):
+        with patch("fixcity.services.chamado_service.geocodificar_endereco", return_value=coords), patch(
             "fixcity.services.chamado_service.buscar_endereco_por_cep",
             return_value={"rua": "Rua A", "bairro": "Centro", "cidade": "Sao Paulo", "estado": "SP"},
         ):
@@ -117,6 +118,58 @@ class FixCityFlaskTests(unittest.TestCase):
         self.assertIn(b"Comentario adicionado.", response.data)
         self.assertIn(b"Maria da Silva", response.data)
         self.assertIn(b"uploads/profiles/", response.data)
+
+    def test_feed_social_exibe_mini_mapa_e_permite_upvote(self):
+        self.cadastrar_usuario()
+        self.criar_chamado_autenticado(coords=(-23.55052, -46.633308))
+
+        response = self.client.post("/denuncias/1/upvote/", data={"aba": "feed"}, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Feed da comunidade", response.data)
+        self.assertIn(b"mini-map-1", response.data)
+        self.assertIn(b"Apoiado", response.data)
+
+    def test_status_so_pode_ser_alterado_pelo_autor_ou_admin(self):
+        self.cadastrar_usuario(nome="Maria da Silva", cpf="52998224725", email="maria@example.com")
+        self.criar_chamado_autenticado()
+        self.client.post("/logout/", follow_redirects=True)
+
+        self.cadastrar_usuario(nome="Joao Pereira", cpf="11144477735", email="joao@example.com")
+        response = self.client.post(
+            "/denuncias/1/status/",
+            data={"status": "RESOLVIDO", "aba": "feed"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Voce nao tem permissao para alterar o status desta denuncia.", response.data)
+        with self.app.app_context():
+            status_atual = get_db().execute("SELECT status FROM chamados WHERE id = ?", (1,)).fetchone()["status"]
+        self.assertEqual(status_atual, "PROBLEMA")
+
+        with self.app.app_context():
+            db = get_db()
+            db.execute("UPDATE usuarios SET is_admin = 1 WHERE email = ?", ("joao@example.com",))
+            db.commit()
+
+        self.client.post("/logout/", follow_redirects=True)
+        self.client.post(
+            "/login/",
+            data={"email": "joao@example.com", "senha": "senha123"},
+            follow_redirects=True,
+        )
+        admin_response = self.client.post(
+            "/denuncias/1/status/",
+            data={"status": "RESOLVIDO", "aba": "feed"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertIn(b"Status atualizado.", admin_response.data)
+        with self.app.app_context():
+            status_final = get_db().execute("SELECT status FROM chamados WHERE id = ?", (1,)).fetchone()["status"]
+        self.assertEqual(status_final, "RESOLVIDO")
 
 
 if __name__ == "__main__":
