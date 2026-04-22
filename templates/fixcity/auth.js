@@ -41,7 +41,7 @@ if (formCadastro) {
       email,
       senha
     };
-
+                         
     usuarios.push(novoUsuario);
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
 

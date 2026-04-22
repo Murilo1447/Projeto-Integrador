@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app import create_app
+from fixcity.services.auth_service import buscar_usuario_por_email
 
 
 class FixCityFlaskTests(unittest.TestCase):
@@ -43,8 +44,6 @@ class FixCityFlaskTests(unittest.TestCase):
 
         if com_foto:
             with self.app.app_context():
-                from app import buscar_usuario_por_email
-
                 usuario = buscar_usuario_por_email("maria@example.com")
                 if usuario and usuario["foto_perfil"]:
                     self.created_uploads.append(Path(self.app.static_folder) / usuario["foto_perfil"])
@@ -52,8 +51,8 @@ class FixCityFlaskTests(unittest.TestCase):
         return response
 
     def criar_chamado_autenticado(self):
-        with patch("app.geocodificar_endereco", return_value=(None, None)), patch(
-            "app.buscar_endereco_por_cep",
+        with patch("fixcity.services.chamado_service.geocodificar_endereco", return_value=(None, None)), patch(
+            "fixcity.services.chamado_service.buscar_endereco_por_cep",
             return_value={"rua": "Rua A", "bairro": "Centro", "cidade": "Sao Paulo", "estado": "SP"},
         ):
             return self.client.post(

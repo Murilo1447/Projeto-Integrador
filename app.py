@@ -979,6 +979,19 @@ def calcular_stats(chamados: list[dict]) -> dict:
     }
 
 
+from fixcity import create_app as modular_create_app
+from fixcity.db import get_db as modular_get_db, init_db as modular_init_db
+from fixcity.services.auth_service import (
+    buscar_usuario_por_email as modular_buscar_usuario_por_email,
+    buscar_usuario_por_id as modular_buscar_usuario_por_id,
+)
+
+
+create_app = modular_create_app
+get_db = modular_get_db
+init_db = modular_init_db
+buscar_usuario_por_email = modular_buscar_usuario_por_email
+buscar_usuario_por_id = modular_buscar_usuario_por_id
 app = create_app()
 
 
