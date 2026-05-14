@@ -95,5 +95,9 @@ def current_user():
     return g.get("user")
 
 
+def user_is_admin(user) -> bool:
+    return bool(mapping_get(user, "is_admin", 0))
+
+
 def login_redirect_target():
     return request.full_path if request.query_string else request.path

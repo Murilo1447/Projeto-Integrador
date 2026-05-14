@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FixCity - Denuncias</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
-<body>
+<body data-active-tab="{{ active_tab }}">
   <header>
     <div class="header-texto">
       <div class="logo-titulo">
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
         <h1>FixCity</h1>
       </div>
-      <p>Registrar novo problema urbano</p>
+      <p>Denuncias em formato de comunidade, com apoio e mapa por local.</p>
     </div>
 
     <div class="botoes-header">
@@ -37,78 +38,57 @@
     </div>
   </header>
 
-  <div class="container">
-    <div class="box">
-      <h2>Novo Chamado</h2>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="mensagens">
-            {% for category, message in messages %}
-              <div class="mensagem {{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-
-      <form method="post">
-        <div class="perfil-card">
-          <div class="avatar avatar-grande">
-            {% if current_user.foto_perfil %}
-              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
-            {% else %}
-              <span>{{ current_user.nome[:2].upper() }}</span>
-            {% endif %}
-          </div>
-          <div>
-            <strong>{{ current_user.nome }}</strong>
-            <p class="meta-chamado">{{ current_user.email }}</p>
-            <p class="meta-chamado">CPF: {{ current_user.cpf }}</p>
-          </div>
-        </div>
-        {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
-
-        <label for="categoria">Categoria</label>
-        <select id="categoria" name="categoria" required>
-          <option value="">Selecione o problema</option>
-          {% for value, label in category_choices %}
-            <option value="{{ value }}" {% if form_data.categoria == value %}selected{% endif %}>{{ label }}</option>
+  <main class="denuncias-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mensagens mensagens-page">
+          {% for category, message in messages %}
+            <div class="mensagem {{ category }}">{{ message }}</div>
           {% endfor %}
-        </select>
-        {% if errors.categoria %}<small class="field-error">{{ errors.categoria }}</small>{% endif %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-        <label for="cep">CEP</label>
-        <input type="text" id="cep" name="cep" placeholder="Digite o CEP" value="{{ form_data.cep }}">
-        {% if errors.cep %}<small class="field-error">{{ errors.cep }}</small>{% endif %}
+    <section class="denuncias-intro">
+      <div>
+        <p class="section-kicker">Feed social</p>
+        <h2>Veja, apoie e comente problemas urbanos em um unico lugar.</h2>
+        <p class="section-subtitle">As denuncias mais relevantes aparecem primeiro, com mini mapa para ajudar a localizar rapidamente cada ponto denunciado.</p>
+      </div>
+      <div class="tab-switcher" role="tablist" aria-label="Abas da area de denuncias">
+        <button
+          type="button"
+          class="tab-button {% if active_tab == 'feed' %}is-active{% endif %}"
+          data-tab-target="feed"
+          aria-selected="{{ 'true' if active_tab == 'feed' else 'false' }}"
+        >
+          Feed da comunidade
+        </button>
+        <button
+          type="button"
+          class="tab-button {% if active_tab == 'novo' %}is-active{% endif %}"
+          data-tab-target="novo"
+          aria-selected="{{ 'true' if active_tab == 'novo' else 'false' }}"
+        >
+          Nova denuncia
+        </button>
+      </div>
+    </section>
 
-        <label for="rua">Rua</label>
-        <input type="text" id="rua" name="rua" placeholder="Rua" value="{{ form_data.rua }}">
-
-        <label for="bairro">Bairro</label>
-        <input type="text" id="bairro" name="bairro" placeholder="Bairro" value="{{ form_data.bairro }}">
-
-        <label for="cidade">Cidade</label>
-        <input type="text" id="cidade" name="cidade" placeholder="Cidade" value="{{ form_data.cidade }}">
-
-        <label for="numero">Numero da residencia</label>
-        <input type="text" id="numero" name="numero" placeholder="Numero" value="{{ form_data.numero }}">
-
-        <label for="descricao">Comentario sobre o problema</label>
-        <textarea id="descricao" name="descricao" placeholder="Descreva o problema encontrado..." required>{{ form_data.descricao }}</textarea>
-        {% if errors.descricao %}<small class="field-error">{{ errors.descricao }}</small>{% endif %}
-
-        <button type="submit">Registrar Chamado</button>
-      </form>
-    </div>
-
-    <div class="box">
-      <h2>Chamados Registrados</h2>
+    <section class="tab-panel {% if active_tab == 'feed' %}is-active{% endif %}" data-tab-panel="feed">
+      <div class="feed-stats-grid">
+        <article class="feed-stat-card">
+          <span>Total</span>
+          <strong>{{ feed_stats.total }}</strong>
+          <p>denuncias no feed</p>
+        </article>
+      </div>
 
       {% if chamados %}
-        <div class="lista-chamados">
+        <div class="social-feed">
           {% for chamado in chamados %}
-            <div class="card-chamado">
-              <div class="chamado-topo">
+            <article class="card-chamado social-post" id="denuncia-{{ chamado.id }}">
+              <div class="chamado-topo social-post-top">
                 <div class="perfil-inline">
                   <div class="avatar">
                     {% if chamado.avatar_url %}
@@ -122,68 +102,208 @@
                     <span class="meta-mini">{{ chamado.tempo_relativo }}</span>
                   </div>
                 </div>
-                <span class="status {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                <div class="post-top-meta">
+                  <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                  <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                </div>
               </div>
 
-              <strong>{{ chamado.categoria_label }}</strong>
-              <p>{{ chamado.descricao }}</p>
-              <p class="meta-chamado">Local: {{ chamado.endereco_completo }}</p>
-              {% if chamado.email %}
-                <p class="meta-chamado">Contato: {{ chamado.email }}</p>
-              {% endif %}
+              <div class="social-copy">
+                <p>{{ chamado.descricao }}</p>
+              </div>
 
-              <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="form-status">
-                <div class="campo-status">
-                  <label for="status-{{ chamado.id }}">Atualizar status</label>
-                  <select id="status-{{ chamado.id }}" name="status">
-                    {% for value, label in status_choices %}
-                      <option value="{{ value }}" {% if chamado.status == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <button type="submit">Salvar status</button>
-              </form>
+              <div class="social-location">
+                <strong>Local:</strong> {{ chamado.endereco_completo }}
+                {% if chamado.email %}
+                  <span>Contato: {{ chamado.email }}</span>
+                {% endif %}
+              </div>
 
-              {% if chamado.comentarios %}
-                <div class="comentarios-lista">
-                  {% for comentario in chamado.comentarios %}
-                    <div class="comentario">
-                      <div class="comentario-topo">
-                        <div class="perfil-inline">
-                          <div class="avatar avatar-pequeno">
-                            {% if comentario.avatar_url %}
-                              <img src="{{ comentario.avatar_url }}" alt="Foto de perfil de {{ comentario.autor_exibicao }}">
-                            {% else %}
-                              <span>{{ comentario.avatar_iniciais }}</span>
-                            {% endif %}
-                          </div>
-                          <strong>{{ comentario.autor_exibicao }}</strong>
-                        </div>
-                        <span>{{ comentario.tempo_relativo }}</span>
-                      </div>
-                      <p>{{ comentario.texto }}</p>
-                    </div>
-                  {% endfor %}
+              {% if chamado.coordinates_available %}
+                <div class="mini-map-shell">
+                  <div class="mini-map-header">
+                    <strong>Mini mapa do local denunciado</strong>
+                    <span>{{ chamado.endereco_completo }}</span>
+                  </div>
+                  <div
+                    class="mini-map"
+                    id="mini-map-{{ chamado.id }}"
+                    data-mini-map
+                    data-lat="{{ chamado.latitude }}"
+                    data-lng="{{ chamado.longitude }}"
+                    data-title="{{ chamado.categoria_label|e }}"
+                    data-address="{{ chamado.endereco_completo|e }}"
+                  ></div>
                 </div>
               {% else %}
-                <p class="sem-comentarios">Sem comentarios ainda.</p>
+                <div class="mini-map-placeholder">
+                  <strong>Mini mapa indisponivel</strong>
+                  <p>Esse registro ainda nao tem coordenadas suficientes para exibir o local.</p>
+                </div>
               {% endif %}
 
-              <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="form-comentario">
-                <label for="comentario-{{ chamado.id }}">Novo comentario</label>
-                <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario como {{ current_user.nome }}" required></textarea>
+              <div class="social-actions-row">
+                <form method="post" action="{{ url_for('alternar_upvote', pk=chamado.id) }}" class="action-inline">
+                  <input type="hidden" name="aba" value="feed">
+                  <button type="submit" class="btn-upvote {% if chamado.has_upvoted %}is-active{% endif %}">
+                    <span class="btn-upvote-icon">^</span>
+                    <span>{{ "Apoiado" if chamado.has_upvoted else "Apoiar" }}</span>
+                  </button>
+                </form>
+              </div>
 
-                <button type="submit">Enviar comentario</button>
-              </form>
-            </div>
+              <button
+                type="button"
+                class="btn-toggle-discussion"
+                data-discussion-toggle
+                data-target-id="discussion-{{ chamado.id }}"
+                aria-controls="discussion-{{ chamado.id }}"
+                aria-expanded="false"
+              >
+                <span class="discussion-toggle-label">Abrir post e ver comentarios</span>
+              </button>
+
+              {% if current_user.is_admin or chamado.owner_user_id == current_user.id_usuario %}
+                <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="form-status social-status-form">
+                  <input type="hidden" name="aba" value="feed">
+                  <div class="campo-status">
+                    <label for="status-{{ chamado.id }}">Atualizar status</label>
+                    <select id="status-{{ chamado.id }}" name="status">
+                      {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if chamado.status == value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <button type="submit">Salvar status</button>
+                </form>
+              {% endif %}
+
+              <section class="discussion-block" id="discussion-{{ chamado.id }}" data-discussion-panel hidden>
+                <div class="discussion-header">
+                  <h3>Comentarios da comunidade</h3>
+                </div>
+
+                {% if chamado.comentarios %}
+                  <div class="comentarios-lista">
+                    {% for comentario in chamado.comentarios %}
+                      <div class="comentario">
+                        <div class="comentario-topo">
+                          <div class="perfil-inline">
+                            <div class="avatar avatar-pequeno">
+                              {% if comentario.avatar_url %}
+                                <img src="{{ comentario.avatar_url }}" alt="Foto de perfil de {{ comentario.autor_exibicao }}">
+                              {% else %}
+                                <span>{{ comentario.avatar_iniciais }}</span>
+                              {% endif %}
+                            </div>
+                            <strong>{{ comentario.autor_exibicao }}</strong>
+                          </div>
+                          <span>{{ comentario.tempo_relativo }}</span>
+                        </div>
+                        <p>{{ comentario.texto }}</p>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="sem-comentarios">Sem comentarios ainda.</p>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="form-comentario">
+                  <input type="hidden" name="aba" value="feed">
+                  <label for="comentario-{{ chamado.id }}">Novo comentario</label>
+                  <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario como {{ current_user.nome }}" required></textarea>
+                  <button type="submit">Enviar comentario</button>
+                </form>
+              </section>
+            </article>
           {% endfor %}
         </div>
       {% else %}
-        <p class="sem-comentarios">Nenhum chamado registrado ainda.</p>
+        <div class="feed-empty-state">
+          <h3>Nenhuma denuncia registrada ainda.</h3>
+          <p>Use a aba "Nova denuncia" para abrir o primeiro chamado da comunidade.</p>
+        </div>
       {% endif %}
-    </div>
-  </div>
+    </section>
 
+    <section class="tab-panel {% if active_tab == 'novo' %}is-active{% endif %}" data-tab-panel="novo">
+      <div class="box composer-box">
+        <div class="composer-header">
+          <div>
+            <p class="section-kicker">Publicar</p>
+            <h2>Novo Chamado</h2>
+          </div>
+          <p class="composer-copy">Crie uma denuncia completa para ela entrar no feed com mini mapa e espaco para apoio da comunidade.</p>
+        </div>
+
+        <form method="post">
+          <div class="perfil-card">
+            <div class="avatar avatar-grande">
+              {% if current_user.foto_perfil %}
+                <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
+              {% else %}
+                <span>{{ current_user.nome[:2].upper() }}</span>
+              {% endif %}
+            </div>
+            <div>
+              <strong>{{ current_user.nome }}</strong>
+              <p class="meta-chamado">{{ current_user.email }}</p>
+              <p class="meta-chamado">CPF: {{ current_user.cpf }}</p>
+            </div>
+          </div>
+          {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label for="categoria">Categoria</label>
+              <select id="categoria" name="categoria" required>
+                <option value="">Selecione o problema</option>
+                {% for value, label in category_choices %}
+                  <option value="{{ value }}" {% if form_data.categoria == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.categoria %}<small class="field-error">{{ errors.categoria }}</small>{% endif %}
+            </div>
+
+            <div>
+              <label for="cep">CEP</label>
+              <input type="text" id="cep" name="cep" placeholder="Digite o CEP" value="{{ form_data.cep }}">
+              {% if errors.cep %}<small class="field-error">{{ errors.cep }}</small>{% endif %}
+            </div>
+
+            <div>
+              <label for="rua">Rua</label>
+              <input type="text" id="rua" name="rua" placeholder="Rua" value="{{ form_data.rua }}">
+            </div>
+
+            <div>
+              <label for="numero">Numero da residencia</label>
+              <input type="text" id="numero" name="numero" placeholder="Numero" value="{{ form_data.numero }}">
+            </div>
+
+            <div>
+              <label for="bairro">Bairro</label>
+              <input type="text" id="bairro" name="bairro" placeholder="Bairro" value="{{ form_data.bairro }}">
+            </div>
+
+            <div>
+              <label for="cidade">Cidade</label>
+              <input type="text" id="cidade" name="cidade" placeholder="Cidade" value="{{ form_data.cidade }}">
+            </div>
+          </div>
+
+          <label for="descricao">Comentario sobre o problema</label>
+          <textarea id="descricao" name="descricao" placeholder="Descreva o problema encontrado..." required>{{ form_data.descricao }}</textarea>
+          {% if errors.descricao %}<small class="field-error">{{ errors.descricao }}</small>{% endif %}
+
+          <button type="submit" class="btn-publicar">Registrar Chamado</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/denuncias-feed.js') }}"></script>
   <script>
     const cepInput = document.getElementById("cep");
 

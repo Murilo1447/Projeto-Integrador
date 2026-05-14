@@ -109,6 +109,7 @@ def ensure_schema_compatibility(db: DatabaseConnection):
         sqlite_migrations = {
             "usuarios": {
                 "cpf": "ALTER TABLE usuarios ADD COLUMN cpf TEXT DEFAULT ''",
+                "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
                 "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT DEFAULT ''",
                 "criado_em": "ALTER TABLE usuarios ADD COLUMN criado_em TEXT DEFAULT ''",
             },
@@ -129,9 +130,10 @@ def ensure_schema_compatibility(db: DatabaseConnection):
 
     mysql_migrations = {
         "usuarios": {
+            "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0",
             "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR(255) DEFAULT ''",
             "criado_em": "ALTER TABLE usuarios ADD COLUMN criado_em VARCHAR(40) NOT NULL DEFAULT ''",
-        }
+        },
     }
     for table_name, migrations in mysql_migrations.items():
         existing_columns = mysql_columns(db, table_name)

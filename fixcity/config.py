@@ -38,6 +38,7 @@ SQLITE_SCHEMA_STATEMENTS = [
         senha TEXT NOT NULL,
         telefone TEXT NOT NULL,
         cpf TEXT NOT NULL UNIQUE,
+        is_admin INTEGER NOT NULL DEFAULT 0,
         foto_perfil TEXT DEFAULT '',
         criado_em TEXT NOT NULL
     )
@@ -76,6 +77,17 @@ SQLITE_SCHEMA_STATEMENTS = [
         FOREIGN KEY (chamado_id) REFERENCES chamados (id) ON DELETE CASCADE
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS upvotes_chamado (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        chamado_id INTEGER NOT NULL,
+        criado_em TEXT NOT NULL,
+        UNIQUE (id_usuario, chamado_id),
+        FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
+        FOREIGN KEY (chamado_id) REFERENCES chamados (id) ON DELETE CASCADE
+    )
+    """,
 ]
 
 MYSQL_SCHEMA_STATEMENTS = [
@@ -87,6 +99,7 @@ MYSQL_SCHEMA_STATEMENTS = [
         senha VARCHAR(255) NOT NULL,
         telefone VARCHAR(20) NOT NULL,
         cpf VARCHAR(14) NOT NULL,
+        is_admin TINYINT(1) NOT NULL DEFAULT 0,
         foto_perfil VARCHAR(255) DEFAULT '',
         criado_em VARCHAR(40) NOT NULL,
         CONSTRAINT uq_usuarios_email UNIQUE (email),
@@ -140,6 +153,21 @@ MYSQL_SCHEMA_STATEMENTS = [
             FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
             ON DELETE SET NULL,
         CONSTRAINT fk_comentarios_denuncia
+            FOREIGN KEY (id_denuncia) REFERENCES denuncias (id_denuncia)
+            ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS upvotes_denuncia (
+        id_upvote INT AUTO_INCREMENT PRIMARY KEY,
+        id_usuario INT NOT NULL,
+        id_denuncia INT NOT NULL,
+        criado_em VARCHAR(40) NOT NULL,
+        CONSTRAINT uq_upvotes_denuncia_usuario UNIQUE (id_usuario, id_denuncia),
+        CONSTRAINT fk_upvotes_denuncia_usuario
+            FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
+            ON DELETE CASCADE,
+        CONSTRAINT fk_upvotes_denuncia_chamado
             FOREIGN KEY (id_denuncia) REFERENCES denuncias (id_denuncia)
             ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

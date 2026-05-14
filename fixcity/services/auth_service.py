@@ -33,7 +33,7 @@ def buscar_usuario_por_id(user_id: int | None):
     if not user_id:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, foto_perfil FROM usuarios WHERE id_usuario = ?"
+    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE id_usuario = ?"
     return get_db().execute(query, (user_id,)).fetchone()
 
 
@@ -41,7 +41,7 @@ def buscar_usuario_por_email(email: str):
     if not email:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, foto_perfil FROM usuarios WHERE email = ?"
+    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE email = ?"
     return get_db().execute(query, (email,)).fetchone()
 
 
@@ -49,7 +49,7 @@ def buscar_usuario_por_cpf(cpf: str):
     if not cpf:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, foto_perfil FROM usuarios WHERE cpf = ?"
+    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE cpf = ?"
     return get_db().execute(query, (cpf,)).fetchone()
 
 
