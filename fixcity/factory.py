@@ -6,7 +6,14 @@ from .auth import inject_user, load_logged_in_user
 from .config import default_app_config
 from .db import close_db
 from .views.auth_views import cadastro, login, logout
-from .views.main_views import adicionar_comentario_view, alternar_upvote_view, atualizar_status, denuncias, home
+from .views.main_views import (
+    adicionar_comentario_view,
+    alternar_upvote_view,
+    atualizar_status,
+    denuncias,
+    home,
+    mapa_ao_vivo,
+)
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -32,6 +39,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         return redirect(request.referrer or url_for("cadastro"))
 
     app.add_url_rule("/", view_func=home, endpoint="home")
+    app.add_url_rule("/mapa/", view_func=mapa_ao_vivo, endpoint="mapa_ao_vivo")
     app.add_url_rule("/login/", view_func=login, methods=["GET", "POST"], endpoint="login")
     app.add_url_rule("/cadastro/", view_func=cadastro, methods=["GET", "POST"], endpoint="cadastro")
     app.add_url_rule("/logout/", view_func=logout, methods=["POST"], endpoint="logout")

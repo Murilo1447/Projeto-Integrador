@@ -72,6 +72,7 @@ class FixCityFlaskTests(unittest.TestCase):
 
     def test_paginas_publicas_carregam_e_denuncias_exige_login(self):
         self.assertEqual(self.client.get("/").status_code, 200)
+        self.assertEqual(self.client.get("/mapa/").status_code, 200)
         self.assertEqual(self.client.get("/login/").status_code, 200)
         self.assertEqual(self.client.get("/cadastro/").status_code, 200)
 

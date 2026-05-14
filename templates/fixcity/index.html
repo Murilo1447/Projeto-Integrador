@@ -5,156 +5,380 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FixCity</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
-<body>
-  <header>
-    <div class="header-texto">
-      <div class="logo-titulo">
+<body
+  class="site-shell landing-page"
+  data-feed-url="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}"
+  data-create-url="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}"
+  data-panel-mode="overlay"
+>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('home') }}" class="brand-lockup">
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
-        <h1>FixCity</h1>
-      </div>
-      <p>Plataforma oficial de registro de problemas urbanos</p>
-    </div>
-
-    <div class="botoes-header">
-      <button type="button" onclick="irParaSobre()">Sobre</button>
-      <button type="button" onclick="window.location.href='{{ url_for('denuncias') }}'">Denuncias</button>
-      
-      {% if current_user %}
-        <div class="usuario-header" id="abrir-perfil" style="cursor: pointer;">
-          <div class="avatar">
-            {% if current_user.foto_perfil %}
-              <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil">
-            {% else %}
-              <svg class="avatar-padrao-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#ccc"/>
-              </svg>
-            {% endif %}
-          </div>
-          <div class="usuario-header-info">
-            <strong>{{ current_user.nome }}</strong>
-            <span>Ver perfil</span>
-          </div>
+        <div>
+          <strong>FixCity</strong>
+          <span>Comunidade para chamados e denuncias urbanas</span>
         </div>
-        <form method="post" action="{{ url_for('logout') }}">
-          <button type="submit" class="btn-secundario">Sair</button>
-        </form>
-      {% else %}
-        <button type="button" onclick="window.location.href='{{ url_for('cadastro') }}'">Cadastro</button>
-        <button type="button" onclick="window.location.href='{{ url_for('login') }}'">Login</button>
-      {% endif %}
+      </a>
+
+      <nav class="nav-actions">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('como-funciona').scrollIntoView({ behavior: 'smooth' })">Como funciona</button>
+        <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa ao vivo</a>
+
+        {% if current_user %}
+          <div class="user-pill">
+            <div class="avatar">
+              {% if current_user.foto_perfil %}
+                <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de perfil de {{ current_user.nome }}">
+              {% else %}
+                <span>{{ current_user.nome[:2].upper() }}</span>
+              {% endif %}
+            </div>
+            <div class="user-pill-copy">
+              <strong>{{ current_user.nome }}</strong>
+              <span>participando da comunidade</span>
+            </div>
+          </div>
+          <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-primary">Abrir feed</a>
+          <form method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="btn btn-secondary">Sair</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('cadastro') }}" class="btn btn-secondary">Criar conta</a>
+          <a href="{{ url_for('login') }}" class="btn btn-primary">Entrar</a>
+        {% endif %}
+      </nav>
     </div>
   </header>
 
-  <section class="section-status">
-    <div class="status-container">
-      <div class="status-card problema-card">
-        <h3>Problemas</h3>
-        <span id="total-problemas">0</span>
-      </div>
-      <div class="status-card pendente-card">
-        <h3>Em andamento</h3>
-        <span id="total-pendentes">0</span>
-      </div>
-      <div class="status-card resolvido-card">
-        <h3>Resolvidos</h3>
-        <span id="total-resolvidos">0</span>
-      </div>
-    </div>
-  </section>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="container container-mensagens">
-        <div class="box">
-          <div class="mensagens">
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-wrapper">
+          <div class="flash-stack">
             {% for category, message in messages %}
               <div class="mensagem {{ category }}">{{ message }}</div>
             {% endfor %}
           </div>
-        </div>
-      </div>
-    {% endif %}
-  {% endwith %}
+        </section>
+      {% endif %}
+    {% endwith %}
 
-  <section class="section-mapa">
-    <div class="container">
-      <div class="box mapa-container">
-        <h2>Mapa de Ocorrências</h2>
-        <div class="search-container">
-          <input type="text" class="search" placeholder="Buscar localização ou chamado..." />
+    <section class="landing-hero section-shell">
+      <div class="hero-grid">
+        <div class="hero-copy" data-reveal>
+          <p class="eyebrow">Rede civica local</p>
+          <h1>Chamados e denuncias com cara de comunidade, mobilizacao e resultado.</h1>
+          <p class="hero-description">
+            O FixCity organiza problemas urbanos em um feed social, com apoio da vizinhanca,
+            comentarios, acompanhamento de status e mapa em tempo real.
+          </p>
+          <div class="hero-actions">
+            {% if current_user %}
+              <a href="{{ url_for('denuncias', aba='novo') }}" class="btn btn-primary">Publicar chamado</a>
+              <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-secondary">Ver comunidade</a>
+            {% else %}
+              <a href="{{ url_for('cadastro') }}" class="btn btn-primary">Entrar para a comunidade</a>
+              <a href="{{ url_for('login') }}" class="btn btn-secondary">Ja tenho conta</a>
+            {% endif %}
+          </div>
+          <div class="hero-highlights">
+            <div class="highlight-pill">
+              <strong>{{ stats.total }}</strong>
+              <span>registros ativos</span>
+            </div>
+            <div class="highlight-pill">
+              <strong>{{ stats.resolvidos }}</strong>
+              <span>problemas resolvidos</span>
+            </div>
+            <div class="highlight-pill">
+              <strong>{{ chamados|length }}</strong>
+              <span>posts visiveis no mapa</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hero-panel" data-reveal>
+          <div class="hero-panel-head">
+            <span class="eyebrow">Preview do feed</span>
+            <strong>O que esta acontecendo agora</strong>
+          </div>
+
+          {% if chamados %}
+            <div class="hero-post-stack">
+              {% for chamado in chamados[:3] %}
+                <article class="hero-post-card">
+                  <div class="hero-post-top">
+                    <div class="perfil-inline">
+                      <div class="avatar">
+                        {% if chamado.avatar_url %}
+                          <img src="{{ chamado.avatar_url }}" alt="Foto de perfil de {{ chamado.autor_exibicao }}">
+                        {% else %}
+                          <span>{{ chamado.avatar_iniciais }}</span>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <strong>{{ chamado.autor_exibicao }}</strong>
+                        <span>{{ chamado.tempo_relativo }}</span>
+                      </div>
+                    </div>
+                    <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                  </div>
+                  <h3>{{ chamado.categoria_label }} em {{ chamado.bairro or chamado.cidade or 'area informada' }}</h3>
+                  <p>{{ chamado.descricao }}</p>
+                  <div class="hero-post-meta">
+                    <span>{{ chamado.upvotes_label }}</span>
+                    <span>{{ chamado.comentarios_label }}</span>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-preview">
+              <strong>A comunidade ainda esta abrindo os primeiros chamados.</strong>
+              <p>Quando os primeiros registros entrarem, o feed e o mapa passam a refletir a movimentacao da cidade.</p>
+            </div>
+          {% endif %}
+        </aside>
+      </div>
+    </section>
+
+    <section class="section-shell">
+      <div class="stats-grid">
+        <article class="stat-card danger" data-reveal>
+          <span>Problemas</span>
+          <strong id="total-problemas">{{ stats.problemas }}</strong>
+          <p>situacoes aguardando prioridade</p>
+        </article>
+        <article class="stat-card warning" data-reveal>
+          <span>Em andamento</span>
+          <strong id="total-pendentes">{{ stats.pendentes }}</strong>
+          <p>casos acompanhados pela comunidade</p>
+        </article>
+        <article class="stat-card success" data-reveal>
+          <span>Resolvidos</span>
+          <strong id="total-resolvidos">{{ stats.resolvidos }}</strong>
+          <p>ocorrencias com retorno positivo</p>
+        </article>
+        <article class="stat-card neutral" data-reveal>
+          <span>Total</span>
+          <strong>{{ stats.total }}</strong>
+          <p>publicacoes monitoradas pelo FixCity</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-shell content-grid" id="mapa">
+      <div class="map-card" data-reveal>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Mapa social</p>
+            <h2>Veja os chamados ganhando contexto geografico.</h2>
+          </div>
+          <p>
+            Pesquise enderecos, encontre ocorrencias proximas e acompanhe comentarios
+            diretamente no ponto do mapa.
+          </p>
+        </div>
+
+        <div class="search-shell">
+          <input type="text" class="search" placeholder="Busque por bairro, endereco ou tipo de problema">
           <div id="sugestoes" class="sugestoes-box"></div>
         </div>
+
         <div class="map-wrapper">
           <div id="map"></div>
           <div id="map-overlay">Clique no mapa para ativar o zoom</div>
         </div>
-        <div class="map-button-area">
-          <button id="toggle-map">Expandir mapa</button>
+
+        <div class="map-toolbar">
+          <button id="open-create-panel" type="button" class="btn btn-primary">Criar denuncia</button>
+          <button id="toggle-map" type="button" class="btn btn-secondary">Expandir mapa</button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section class="apresentacao-bloco bloco-1">
-    <div class="apresentacao-conteudo">
-      <h2>Acompanhe em Tempo Real</h2>
-      <p>Visualize todas as ocorrências diretamente no mapa e acompanhe a mudança de status.</p>
-    </div>
-  </section>
+      <aside class="side-column" data-reveal>
+        <div class="side-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Destaques recentes</p>
+              <h2>Posts que ajudam a comunidade a agir mais rapido.</h2>
+            </div>
+          </div>
 
-  <section class="apresentacao-bloco bloco-2">
-    <div class="apresentacao-conteudo">
-      <h2>Registre Problemas na Sua Cidade</h2>
-      <p>Informe buracos, iluminação pública ou lixo. Melhore sua cidade.</p>
-    </div>
-  </section>
+          {% if chamados %}
+            <div class="preview-list">
+              {% for chamado in chamados[:4] %}
+                <article class="preview-card is-interactive" data-map-post-trigger data-post-id="{{ chamado.id }}">
+                  <div class="preview-card-top">
+                    <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                    <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                  </div>
+                  <strong>{{ chamado.autor_exibicao }}</strong>
+                  <p>{{ chamado.descricao }}</p>
+                  <div class="preview-meta">
+                    <span>{{ chamado.endereco_completo }}</span>
+                    <span>{{ chamado.tempo_relativo }}</span>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="helper-copy">Ainda nao ha chamados suficientes para montar destaques.</p>
+          {% endif %}
+        </div>
 
-  <section class="apresentacao-bloco bloco-3">
-    <div class="apresentacao-conteudo">
-      <h2>Impacto Coletivo</h2>
-      <p>Comentários e resolução colaborativa tornam a cidade mais eficiente.</p>
-    </div>
-  </section>
+        <div class="side-card community-card">
+          <p class="eyebrow">Comunidade ativa</p>
+          <h3>Mais proximidade entre moradores, denuncias e acompanhamento.</h3>
+          <ul class="bullet-list">
+            <li>Feed unico para chamados, comentarios e apoio.</li>
+            <li>Status claro para entender o andamento de cada caso.</li>
+            <li>Mapa integrado para localizar rapidamente cada problema.</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
 
-  <div id="modal-perfil" class="modal">
-    <div class="modal-content">
-      <span class="close-modal">&times;</span>
-      <h3>Seu Perfil</h3>
-      <div class="avatar avatar-gigante">
-        {% if current_user.foto_perfil %}
-          <img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto Grande">
+    <section class="section-shell" id="como-funciona">
+      <div class="section-heading center" data-reveal>
+        <div>
+          <p class="eyebrow">Como funciona</p>
+          <h2>O mesmo objetivo do FixCity, agora com uma experiencia mais viva e colaborativa.</h2>
+        </div>
+      </div>
+
+      <div class="steps-grid">
+        <article class="step-card" data-reveal>
+          <span>01</span>
+          <h3>Publique o problema</h3>
+          <p>Abra um chamado com descricao, categoria e localizacao para entrar no feed da cidade.</p>
+        </article>
+        <article class="step-card" data-reveal>
+          <span>02</span>
+          <h3>Ganhe apoio e comentarios</h3>
+          <p>A comunidade pode apoiar, comentar e ajudar a dar visibilidade para o caso certo.</p>
+        </article>
+        <article class="step-card" data-reveal>
+          <span>03</span>
+          <h3>Acompanhe a evolucao</h3>
+          <p>Os status ficam visiveis para que todos saibam se o problema esta parado, em andamento ou resolvido.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="floating-panel-backdrop" id="floating-panel-backdrop" hidden></div>
+
+  <aside class="floating-panel detail-panel" id="map-post-panel" hidden aria-hidden="true">
+    <button type="button" class="panel-close" data-close-floating-panel aria-label="Fechar painel">&times;</button>
+    <div class="panel-topbar">
+      <button type="button" class="panel-drag-handle" data-drag-handle>Arrastar painel</button>
+      <div class="panel-controls">
+        <button type="button" class="panel-minimize" data-panel-toggle aria-expanded="true">Minimizar</button>
+      </div>
+    </div>
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Detalhes da denuncia</p>
+        <h2 id="map-post-title">Denuncia selecionada</h2>
+      </div>
+      <span class="status-badge" id="map-post-status">Status</span>
+    </div>
+
+    <div class="panel-section">
+      <strong id="map-post-author">Autor</strong>
+      <span id="map-post-meta" class="panel-meta">Agora</span>
+    </div>
+
+    <div class="panel-section">
+      <p id="map-post-description"></p>
+    </div>
+
+    <div class="panel-section">
+      <strong>Local</strong>
+      <p id="map-post-address" class="panel-copy"></p>
+    </div>
+
+    <div class="panel-tags" id="map-post-tags"></div>
+
+    <div class="panel-section">
+      <strong>Comentarios da comunidade</strong>
+      <div class="panel-comments" id="map-post-comments"></div>
+    </div>
+
+    <div class="panel-actions">
+      <a id="map-post-feed-link" class="btn btn-primary" href="#">Abrir feed completo</a>
+      <button type="button" id="open-create-panel-inside" class="btn btn-secondary">Criar nova denuncia</button>
+    </div>
+  </aside>
+
+  <aside class="floating-panel create-panel" id="create-post-panel" hidden aria-hidden="true">
+    <button type="button" class="panel-close" data-close-floating-panel aria-label="Fechar painel">&times;</button>
+    <div class="panel-topbar">
+      <button type="button" class="panel-drag-handle" data-drag-handle>Arrastar painel</button>
+      <div class="panel-controls">
+        <button type="button" class="panel-minimize" data-panel-toggle aria-expanded="true">Minimizar</button>
+      </div>
+    </div>
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Nova denuncia</p>
+        <h2>Entrar no fluxo de criacao</h2>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <p class="panel-copy">
+        Abra uma nova publicacao para registrar o problema, indicar o endereco e deixar a comunidade acompanhar a evolucao.
+      </p>
+    </div>
+
+    <div class="panel-actions">
+      <a class="btn btn-primary" href="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}">
+        {{ "Criar denuncia agora" if current_user else "Entrar para criar denuncia" }}
+      </a>
+      <a class="btn btn-secondary" href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}">
+        {{ "Ver feed da comunidade" if current_user else "Entrar no feed" }}
+      </a>
+    </div>
+  </aside>
+
+  <footer class="site-footer" id="rodape">
+    <div class="footer-grid">
+      <div>
+        <a href="{{ url_for('home') }}" class="brand-lockup footer-brand">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+          <div>
+            <strong>FixCity</strong>
+            <span>Rede local para chamados e denuncias urbanas</span>
+          </div>
+        </a>
+        <p>
+          Plataforma digital para registro, acompanhamento e mobilizacao coletiva em torno
+          de problemas urbanos.
+        </p>
+      </div>
+      <div>
+        <h4>Navegacao</h4>
+        <a href="{{ url_for('home') }}">Inicio</a>
+        {% if current_user %}
+          <a href="{{ url_for('denuncias', aba='feed') }}">Feed da comunidade</a>
         {% else %}
-          <svg class="avatar-padrao-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#ccc"/>
-          </svg>
+          <a href="{{ url_for('login') }}">Entrar</a>
+          <a href="{{ url_for('cadastro') }}">Criar conta</a>
         {% endif %}
       </div>
-      <form action="#" method="POST" enctype="multipart/form-data">
-        <label for="alterar_foto" class="btn-alterar">Alterar Foto de Perfil</label>
-        <input type="file" id="alterar_foto" name="foto_perfil" hidden onchange="this.form.submit()">
-      </form>
-    </div>
-  </div>
-
-  <footer class="footer" id="rodape">
-    <div class="footer-container">
-      <div class="footer-col">
-        <h4>Sobre Nos</h4>
-        <p>O FixCity e uma plataforma digital desenvolvida para facilitar o registro de problemas urbanos.</p>
-      </div>
-      <div class="footer-col">
+      <div>
         <h4>Contato</h4>
-        <p>Email: contato@fixcity.com</p>
-        <p>Telefone: (11) 99999-9999</p>
-      </div>
-      <div class="footer-col">
-        <h4>Plataforma</h4>
-        <p><a href="{{ url_for('denuncias') }}">Registrar denuncia</a></p>
-        <p><a href="{{ url_for('login') }}">Login</a></p>
-        <p><a href="{{ url_for('cadastro') }}">Cadastro</a></p>
+        <p>contato@fixcity.com</p>
+        <p>(11) 99999-9999</p>
       </div>
     </div>
     <div class="footer-bottom">

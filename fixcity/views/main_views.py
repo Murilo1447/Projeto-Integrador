@@ -23,28 +23,48 @@ def aba_valida(valor: str | None, default: str = "feed") -> str:
     return aba if aba in {"feed", "novo"} else default
 
 
-def home():
-    chamados = listar_chamados()
-    stats = calcular_stats(chamados)
-    map_data = [
+def build_map_data(chamados: list[dict]) -> list[dict]:
+    return [
         {
             "id": chamado["id"],
+            "autor": chamado["autor_exibicao"],
             "categoria": chamado["categoria_label"],
             "descricao": chamado["descricao"],
             "endereco": chamado["endereco_completo"],
             "status": chamado["status_label"],
+            "status_css": chamado["status_css"],
             "status_color": chamado["status_color"],
             "latitude": chamado["latitude"],
             "longitude": chamado["longitude"],
+            "tempo_relativo": chamado["tempo_relativo"],
+            "upvotes_label": chamado["upvotes_label"],
+            "comentarios_label": chamado["comentarios_label"],
             "comentarios": [
-                f'{comentario["autor_exibicao"]}: {comentario["texto"]}'
+                {
+                    "autor": comentario["autor_exibicao"],
+                    "texto": comentario["texto"],
+                    "tempo_relativo": comentario["tempo_relativo"],
+                }
                 for comentario in chamado["comentarios"]
             ],
         }
         for chamado in chamados
         if chamado["latitude"] is not None and chamado["longitude"] is not None
     ]
+
+
+def home():
+    chamados = listar_chamados()
+    stats = calcular_stats(chamados)
+    map_data = build_map_data(chamados)
     return render_template("fixcity/index.html", chamados=chamados, stats=stats, map_data=map_data)
+
+
+def mapa_ao_vivo():
+    chamados = listar_chamados()
+    stats = calcular_stats(chamados)
+    map_data = build_map_data(chamados)
+    return render_template("fixcity/mapa.html", chamados=chamados, stats=stats, map_data=map_data)
 
 
 @login_required

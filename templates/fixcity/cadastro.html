@@ -4,69 +4,99 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro - FixCity</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-  <div class="auth-container">
-    <div class="auth-card">
-      <h2>Criar Conta</h2>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="mensagens">
-            {% for category, message in messages %}
-              <div class="mensagem {{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-
-      <form id="formCadastro" method="post" enctype="multipart/form-data">
-        <div class="avatar-preview-card">
-          <div class="avatar avatar-grande avatar-preview-shell">
-    <img data-avatar-image hidden alt="Preview da foto de perfil">
-    
-    <svg class="avatar-padrao-svg" data-avatar-fallback viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#ccc"/>
-    </svg>
-
-          </div>
+<body class="site-shell auth-page">
+  <main class="auth-shell">
+    <section class="auth-layout">
+      <aside class="auth-brand-panel" data-reveal>
+        <a href="{{ url_for('home') }}" class="brand-lockup">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
           <div>
-            <label for="foto_perfil">Foto de perfil</label>
-            <input type="file" id="foto_perfil" name="foto_perfil" accept="image/png,image/jpeg,image/webp,image/gif">
-            {% if errors.foto_perfil %}<small class="field-error">{{ errors.foto_perfil }}</small>{% endif %}
+            <strong>FixCity</strong>
+            <span>Comunidade de chamados urbanos</span>
           </div>
+        </a>
+        <p class="eyebrow">Crie seu perfil</p>
+        <h1>Monte sua presenca na comunidade e ajude a cidade com publicacoes mais visiveis.</h1>
+        <p>
+          Seu perfil permite comentar, apoiar chamados e publicar denuncias com contexto,
+          localizacao e acompanhamento de status.
+        </p>
+      </aside>
+
+      <section class="auth-card" data-reveal>
+        <div class="auth-card-head">
+          <h2>Criar conta</h2>
+          <p>Complete seu perfil para participar do feed do FixCity.</p>
         </div>
 
-        <label for="nome">Nome completo</label>
-        <input type="text" id="nome" name="nome" placeholder="Nome completo" value="{{ form_data.nome }}" required>
-        {% if errors.nome %}<small class="field-error">{{ errors.nome }}</small>{% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mensagens">
+              {% for category, message in messages %}
+                <div class="mensagem {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
-        <label for="cpf">CPF</label>
-        <input type="text" id="cpf" name="cpf" placeholder="CPF" value="{{ form_data.cpf }}" required>
-        {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
+        <form id="formCadastro" method="post" enctype="multipart/form-data" class="auth-form">
+          <div class="avatar-preview-card">
+            <div class="avatar avatar-grande avatar-preview-shell">
+              <img data-avatar-image hidden alt="Preview da foto de perfil">
+              <svg class="avatar-padrao-svg" data-avatar-fallback viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 16.66 14.67 14 12 14Z" fill="#c4d2c6"/>
+              </svg>
+            </div>
+            <div class="upload-copy">
+              <label for="foto_perfil" class="upload-label" data-upload-label>Adicionar foto de perfil</label>
+              <input type="file" id="foto_perfil" name="foto_perfil" accept="image/png,image/jpeg,image/webp,image/gif">
+              <p>Opcional, mas ajuda a dar uma cara mais comunitaria ao feed.</p>
+              {% if errors.foto_perfil %}<small class="field-error">{{ errors.foto_perfil }}</small>{% endif %}
+            </div>
+          </div>
 
-        <label for="telefone">Telefone com DDD</label>
-        <input type="text" id="telefone" name="telefone" placeholder="Telefone com DDD" value="{{ form_data.telefone }}" required>
-        {% if errors.telefone %}<small class="field-error">{{ errors.telefone }}</small>{% endif %}
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" name="nome" placeholder="Nome completo" value="{{ form_data.nome }}" required>
+          {% if errors.nome %}<small class="field-error">{{ errors.nome }}</small>{% endif %}
 
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="Email" value="{{ form_data.email }}" required>
-        {% if errors.email %}<small class="field-error">{{ errors.email }}</small>{% endif %}
+          <div class="form-grid">
+            <div>
+              <label for="cpf">CPF</label>
+              <input type="text" id="cpf" name="cpf" placeholder="CPF" value="{{ form_data.cpf }}" required>
+              {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
+            </div>
 
-        <label for="senha">Senha</label>
-        <input type="password" id="senha" name="senha" placeholder="Senha" required>
-        {% if errors.senha %}<small class="field-error">{{ errors.senha }}</small>{% endif %}
+            <div>
+              <label for="telefone">Telefone com DDD</label>
+              <input type="text" id="telefone" name="telefone" placeholder="Telefone com DDD" value="{{ form_data.telefone }}" required>
+              {% if errors.telefone %}<small class="field-error">{{ errors.telefone }}</small>{% endif %}
+            </div>
+          </div>
 
-        <button type="submit">Cadastrar</button>
-      </form>
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="Email" value="{{ form_data.email }}" required>
+          {% if errors.email %}<small class="field-error">{{ errors.email }}</small>{% endif %}
 
-      <div class="auth-footer">
-        Ja possui conta?
-        <a href="{{ url_for('login') }}">Entrar</a>
-      </div>
-    </div>
-  </div>
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" name="senha" placeholder="Senha" required>
+          {% if errors.senha %}<small class="field-error">{{ errors.senha }}</small>{% endif %}
+
+          <button type="submit" class="btn btn-primary auth-submit">Cadastrar</button>
+        </form>
+
+        <div class="auth-footer">
+          Ja possui conta?
+          <a href="{{ url_for('login') }}">Entrar</a>
+        </div>
+      </section>
+    </section>
+  </main>
 
   <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FixCity - Mapa ao vivo</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+</head>
+<body
+  class="site-shell map-dashboard-page"
+  data-feed-url="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}"
+  data-create-url="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}"
+  data-home-url="{{ url_for('home') }}"
+  data-panel-mode="free"
+>
+  <header class="site-header compact-header">
+    <div class="header-inner">
+      <a href="{{ url_for('home') }}" class="brand-lockup">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+        <div>
+          <strong>FixCity</strong>
+          <span>Mapa ao vivo da comunidade</span>
+        </div>
+      </a>
+
+      <nav class="nav-actions">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Voltar ao inicio</a>
+        {% if current_user %}
+          <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-ghost">Feed</a>
+          <a href="{{ url_for('denuncias', aba='novo') }}" class="btn btn-primary">Nova denuncia</a>
+        {% else %}
+          <a href="{{ url_for('login', next=url_for('denuncias', aba='feed')) }}" class="btn btn-ghost">Entrar</a>
+          <a href="{{ url_for('cadastro') }}" class="btn btn-primary">Criar conta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="map-dashboard-shell">
+    <section class="map-dashboard-stage">
+      <div class="map-wrapper map-dashboard-wrapper">
+        <div id="map" class="map-dashboard-canvas"></div>
+        <div id="map-overlay">Clique no mapa para ativar o zoom</div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="floating-panel control-panel" id="map-control-panel" data-draggable="true" aria-hidden="false">
+    <div class="panel-topbar">
+      <button type="button" class="panel-drag-handle" data-drag-handle>Arrastar menu</button>
+      <div class="panel-controls">
+        <button type="button" class="panel-minimize" data-panel-toggle aria-expanded="true">Minimizar</button>
+      </div>
+    </div>
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Central do mapa</p>
+        <h2>Mapa ao vivo</h2>
+      </div>
+      <span class="status-badge">{{ stats.total }} registros</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="search-shell">
+        <input type="text" class="search" placeholder="Busque por bairro, endereco ou tipo de problema">
+        <div id="sugestoes" class="sugestoes-box"></div>
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button type="button" id="open-create-panel" class="btn btn-primary">Criar denuncia</button>
+      <button type="button" id="reset-map-view" class="btn btn-secondary">Resetar mapa</button>
+    </div>
+
+    <div class="panel-tags">
+      <span class="panel-tag">{{ stats.problemas }} problemas</span>
+      <span class="panel-tag">{{ stats.pendentes }} pendentes</span>
+      <span class="panel-tag">{{ stats.resolvidos }} resolvidos</span>
+    </div>
+
+    <div class="panel-section">
+      <strong>Denuncias recentes</strong>
+      <div class="map-quick-list">
+        {% for chamado in chamados[:6] %}
+          <article class="map-quick-item" data-map-post-trigger data-post-id="{{ chamado.id }}">
+            <div class="map-quick-head">
+              <span class="feed-chip">{{ chamado.categoria_label }}</span>
+              <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+            </div>
+            <strong>{{ chamado.autor_exibicao }}</strong>
+            <p>{{ chamado.descricao }}</p>
+            <span>{{ chamado.endereco_completo }}</span>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+
+  <aside class="floating-panel detail-panel" id="map-post-panel" hidden aria-hidden="true" data-draggable="true">
+    <button type="button" class="panel-close" data-close-floating-panel aria-label="Fechar painel">&times;</button>
+    <div class="panel-topbar">
+      <button type="button" class="panel-drag-handle" data-drag-handle>Arrastar painel</button>
+      <div class="panel-controls">
+        <button type="button" class="panel-minimize" data-panel-toggle aria-expanded="true">Minimizar</button>
+      </div>
+    </div>
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Detalhes da denuncia</p>
+        <h2 id="map-post-title">Denuncia selecionada</h2>
+      </div>
+      <span class="status-badge" id="map-post-status">Status</span>
+    </div>
+
+    <div class="panel-section">
+      <strong id="map-post-author">Autor</strong>
+      <span id="map-post-meta" class="panel-meta">Agora</span>
+    </div>
+
+    <div class="panel-section">
+      <p id="map-post-description"></p>
+    </div>
+
+    <div class="panel-section">
+      <strong>Local</strong>
+      <p id="map-post-address" class="panel-copy"></p>
+    </div>
+
+    <div class="panel-tags" id="map-post-tags"></div>
+
+    <div class="panel-section">
+      <strong>Comentarios da comunidade</strong>
+      <div class="panel-comments" id="map-post-comments"></div>
+    </div>
+
+    <div class="panel-actions">
+      <a id="map-post-feed-link" class="btn btn-primary" href="#">Abrir feed completo</a>
+      <button type="button" id="open-create-panel-inside" class="btn btn-secondary">Criar nova denuncia</button>
+    </div>
+  </aside>
+
+  <aside class="floating-panel create-panel" id="create-post-panel" hidden aria-hidden="true" data-draggable="true">
+    <button type="button" class="panel-close" data-close-floating-panel aria-label="Fechar painel">&times;</button>
+    <div class="panel-topbar">
+      <button type="button" class="panel-drag-handle" data-drag-handle>Arrastar painel</button>
+      <div class="panel-controls">
+        <button type="button" class="panel-minimize" data-panel-toggle aria-expanded="true">Minimizar</button>
+      </div>
+    </div>
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Nova denuncia</p>
+        <h2>Entrar no fluxo de criacao</h2>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <p class="panel-copy">
+        Abra uma nova publicacao para registrar o problema, indicar o endereco e deixar a comunidade acompanhar a evolucao.
+      </p>
+    </div>
+
+    <div class="panel-actions">
+      <a class="btn btn-primary" href="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}">
+        {{ "Criar denuncia agora" if current_user else "Entrar para criar denuncia" }}
+      </a>
+      <a class="btn btn-secondary" href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}">
+        {{ "Ver feed da comunidade" if current_user else "Entrar no feed" }}
+      </a>
+    </div>
+  </aside>
+
+  <div class="floating-panel-backdrop" id="floating-panel-backdrop" hidden></div>
+
+  <script id="map-data" type="application/json">{{ map_data | tojson }}</script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
