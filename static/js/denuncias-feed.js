@@ -1,16 +1,35 @@
 const body = document.body;
-const tabButtons = document.querySelectorAll("[data-tab-target]");
-const tabPanels = document.querySelectorAll("[data-tab-panel]");
+const tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
+const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+const tabShortcuts = Array.from(document.querySelectorAll("[data-tab-shortcut]"));
 const miniMapNodes = Array.from(document.querySelectorAll("[data-mini-map]"));
 const discussionToggles = Array.from(document.querySelectorAll("[data-discussion-toggle]"));
 const miniMaps = [];
 let mapsInitialized = false;
 
+function setupRevealAnimations() {
+  const revealNodes = document.querySelectorAll("[data-reveal]");
+  if (!revealNodes.length) {
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  revealNodes.forEach((node) => observer.observe(node));
+}
+
 function refreshMiniMaps() {
   miniMaps.forEach((map) => {
     window.setTimeout(() => {
       map.invalidateSize();
-    }, 150);
+    }, 120);
   });
 }
 
@@ -44,13 +63,11 @@ function initializeMiniMaps() {
 
     L.circleMarker([lat, lng], {
       radius: 8,
-      fillColor: "#cb3a31",
-      color: "#fff7f3",
+      fillColor: "#c94d46",
+      color: "#ffffff",
       weight: 2,
-      fillOpacity: 0.92,
-    })
-      .addTo(miniMap)
-      .bindPopup(`<strong>${node.dataset.title}</strong><br>${node.dataset.address}`);
+      fillOpacity: 0.94,
+    }).addTo(miniMap).bindPopup(`<strong>${node.dataset.title}</strong><br>${node.dataset.address}`);
 
     miniMaps.push(miniMap);
   });
@@ -94,12 +111,22 @@ function setDiscussionState(toggle, expanded) {
 
   toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
   panel.hidden = !expanded;
-  label.textContent = expanded ? "Fechar comentarios do post" : "Abrir post e ver comentarios";
+  label.textContent = expanded ? "Fechar comentarios" : "Abrir comentarios";
 }
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     activateTab(button.dataset.tabTarget);
+  });
+});
+
+tabShortcuts.forEach((button) => {
+  button.addEventListener("click", () => {
+    const targetTab = button.dataset.tabShortcut;
+    if (targetTab) {
+      activateTab(targetTab);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   });
 });
 
@@ -111,4 +138,7 @@ discussionToggles.forEach((toggle) => {
   });
 });
 
-activateTab(body?.dataset.activeTab || "feed");
+document.addEventListener("DOMContentLoaded", () => {
+  setupRevealAnimations();
+  activateTab(body?.dataset.activeTab || "feed");
+});
