@@ -55,6 +55,9 @@ SQLITE_SCHEMA_STATEMENTS = [
         rua TEXT DEFAULT '',
         bairro TEXT DEFAULT '',
         cidade TEXT DEFAULT '',
+        estado TEXT DEFAULT '',
+        pais TEXT DEFAULT '',
+        regiao TEXT DEFAULT '',
         numero TEXT DEFAULT '',
         descricao TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'PROBLEMA',
@@ -114,6 +117,8 @@ MYSQL_SCHEMA_STATEMENTS = [
         nome_rua VARCHAR(100) NOT NULL,
         cep CHAR(8) DEFAULT '',
         estado VARCHAR(100) DEFAULT '',
+        pais VARCHAR(100) DEFAULT '',
+        regiao VARCHAR(100) DEFAULT '',
         numero VARCHAR(30) DEFAULT '',
         referencia VARCHAR(1000) DEFAULT ''
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

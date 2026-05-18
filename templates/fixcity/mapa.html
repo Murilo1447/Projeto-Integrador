@@ -11,10 +11,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
+{% set filtered_feed_url = url_for('denuncias', aba='feed', campo_localizacao=location_filter.campo, busca_localizacao=location_filter.busca) if location_filter.ativo else url_for('denuncias', aba='feed') %}
+{% set filtered_feed_entry_url = filtered_feed_url if current_user else url_for('login', next=filtered_feed_url) %}
+{% set create_entry_url = url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) %}
 <body
   class="site-shell map-dashboard-page"
-  data-feed-url="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}"
-  data-create-url="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}"
+  data-feed-url="{{ filtered_feed_entry_url }}"
+  data-create-url="{{ create_entry_url }}"
   data-home-url="{{ url_for('home') }}"
   data-panel-mode="free"
 >
@@ -31,10 +34,10 @@
       <nav class="nav-actions">
         <a href="{{ url_for('home') }}" class="btn btn-secondary">Voltar ao inicio</a>
         {% if current_user %}
-          <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-ghost">Feed</a>
+          <a href="{{ filtered_feed_url }}" class="btn btn-ghost">Feed</a>
           <a href="{{ url_for('denuncias', aba='novo') }}" class="btn btn-primary">Nova denuncia</a>
         {% else %}
-          <a href="{{ url_for('login', next=url_for('denuncias', aba='feed')) }}" class="btn btn-ghost">Entrar</a>
+          <a href="{{ filtered_feed_entry_url }}" class="btn btn-ghost">Entrar</a>
           <a href="{{ url_for('cadastro') }}" class="btn btn-primary">Criar conta</a>
         {% endif %}
       </nav>
@@ -72,6 +75,40 @@
       </div>
     </div>
 
+    <div class="panel-section">
+      <strong>Filtrar localizacao</strong>
+      <form method="get" action="{{ url_for('mapa_ao_vivo') }}" class="location-filter-form">
+        <label for="campo-localizacao-mapa">Filtrar por</label>
+        <select id="campo-localizacao-mapa" name="campo_localizacao">
+          {% for value, label in location_filter_choices %}
+            <option value="{{ value }}" {% if location_filter.campo == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="busca-localizacao-mapa">Termo</label>
+        <input
+          type="text"
+          id="busca-localizacao-mapa"
+          name="busca_localizacao"
+          placeholder="Ex.: Nordeste, RJ, Campinas, Brasil"
+          value="{{ location_filter.busca }}"
+        >
+
+        <div class="panel-actions compact-actions">
+          <button type="submit" class="btn btn-primary">Aplicar filtro</button>
+          <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-secondary">Limpar</a>
+        </div>
+      </form>
+
+      {% if location_filter.ativo %}
+        <div class="filter-result-copy">
+          <strong>Filtro ativo</strong>
+          <span>{{ location_filter.descricao }}</span>
+          <span>{{ chamados|length }} resultado{{ '' if chamados|length == 1 else 's' }}</span>
+        </div>
+      {% endif %}
+    </div>
+
     <div class="panel-actions">
       <button type="button" id="open-create-panel" class="btn btn-primary">Criar denuncia</button>
       <button type="button" id="reset-map-view" class="btn btn-secondary">Resetar mapa</button>
@@ -86,17 +123,21 @@
     <div class="panel-section">
       <strong>Denuncias recentes</strong>
       <div class="map-quick-list">
-        {% for chamado in chamados[:6] %}
-          <article class="map-quick-item" data-map-post-trigger data-post-id="{{ chamado.id }}">
-            <div class="map-quick-head">
-              <span class="feed-chip">{{ chamado.categoria_label }}</span>
-              <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
-            </div>
-            <strong>{{ chamado.autor_exibicao }}</strong>
-            <p>{{ chamado.descricao }}</p>
-            <span>{{ chamado.endereco_completo }}</span>
-          </article>
-        {% endfor %}
+        {% if chamados %}
+          {% for chamado in chamados[:6] %}
+            <article class="map-quick-item" data-map-post-trigger data-post-id="{{ chamado.id }}">
+              <div class="map-quick-head">
+                <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+              </div>
+              <strong>{{ chamado.autor_exibicao }}</strong>
+              <p>{{ chamado.descricao }}</p>
+              <span>{{ chamado.endereco_completo }}</span>
+            </article>
+          {% endfor %}
+        {% else %}
+          <div class="panel-comment-empty">Nenhum registro encontrado para esse filtro de localizacao.</div>
+        {% endif %}
       </div>
     </div>
   </aside>
@@ -169,7 +210,7 @@
       <a class="btn btn-primary" href="{{ url_for('denuncias', aba='novo') if current_user else url_for('login', next=url_for('denuncias', aba='novo')) }}">
         {{ "Criar denuncia agora" if current_user else "Entrar para criar denuncia" }}
       </a>
-      <a class="btn btn-secondary" href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}">
+      <a class="btn btn-secondary" href="{{ filtered_feed_entry_url }}">
         {{ "Ver feed da comunidade" if current_user else "Entrar no feed" }}
       </a>
     </div>

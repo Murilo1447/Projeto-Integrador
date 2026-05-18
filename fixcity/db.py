@@ -115,6 +115,9 @@ def ensure_schema_compatibility(db: DatabaseConnection):
             },
             "chamados": {
                 "id_usuario": "ALTER TABLE chamados ADD COLUMN id_usuario INTEGER",
+                "estado": "ALTER TABLE chamados ADD COLUMN estado TEXT DEFAULT ''",
+                "pais": "ALTER TABLE chamados ADD COLUMN pais TEXT DEFAULT ''",
+                "regiao": "ALTER TABLE chamados ADD COLUMN regiao TEXT DEFAULT ''",
             },
             "comentarios": {
                 "id_usuario": "ALTER TABLE comentarios ADD COLUMN id_usuario INTEGER",
@@ -133,6 +136,11 @@ def ensure_schema_compatibility(db: DatabaseConnection):
             "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0",
             "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR(255) DEFAULT ''",
             "criado_em": "ALTER TABLE usuarios ADD COLUMN criado_em VARCHAR(40) NOT NULL DEFAULT ''",
+        },
+        "endereco": {
+            "estado": "ALTER TABLE endereco ADD COLUMN estado VARCHAR(100) DEFAULT ''",
+            "pais": "ALTER TABLE endereco ADD COLUMN pais VARCHAR(100) DEFAULT ''",
+            "regiao": "ALTER TABLE endereco ADD COLUMN regiao VARCHAR(100) DEFAULT ''",
         },
     }
     for table_name, migrations in mysql_migrations.items():

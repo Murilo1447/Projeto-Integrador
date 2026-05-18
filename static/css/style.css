@@ -872,6 +872,27 @@ textarea {
   width: 100%;
 }
 
+.location-filter-form {
+  display: grid;
+  gap: 12px;
+}
+
+.filter-result-copy {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(32, 106, 67, 0.07);
+  border: 1px solid rgba(32, 106, 67, 0.12);
+}
+
+.filter-result-copy span {
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
 .social-post {
   padding: 24px;
 }
@@ -932,6 +953,14 @@ textarea {
 
 .social-copy h2 {
   margin-bottom: 10px;
+}
+
+.social-location {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .engagement-strip {
@@ -1383,6 +1412,10 @@ textarea {
 .panel-actions {
   margin-top: 24px;
   flex-wrap: wrap;
+}
+
+.panel-actions.compact-actions {
+  margin-top: 8px;
 }
 
 .floating-panel.is-minimized {

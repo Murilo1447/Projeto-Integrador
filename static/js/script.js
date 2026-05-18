@@ -408,7 +408,7 @@ function setupMap() {
       return {
         ...chamado,
         marker,
-        searchText: `${chamado.categoria} ${chamado.endereco} ${chamado.descricao}`.toLowerCase(),
+        searchText: `${chamado.categoria} ${chamado.endereco} ${chamado.descricao} ${chamado.bairro || ""} ${chamado.cidade || ""} ${chamado.estado || ""} ${chamado.pais || ""} ${chamado.regiao || ""}`.toLowerCase(),
       };
     });
 

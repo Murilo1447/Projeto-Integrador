@@ -131,6 +131,42 @@ class FixCityFlaskTests(unittest.TestCase):
         self.assertIn(b"mini-map-1", response.data)
         self.assertIn(b"Apoiado", response.data)
 
+    def test_feed_e_mapa_filtram_por_localizacao_e_preservam_o_contexto(self):
+        self.cadastrar_usuario()
+        self.criar_chamado_autenticado(coords=(-23.55052, -46.633308))
+
+        feed_response = self.client.get(
+            "/denuncias/?aba=feed&campo_localizacao=estado&busca_localizacao=SP",
+            follow_redirects=True,
+        )
+        self.assertEqual(feed_response.status_code, 200)
+        self.assertIn(b"Estado: &#34;SP&#34;", feed_response.data)
+        self.assertIn(b"1 resultado", feed_response.data)
+
+        upvote_response = self.client.post(
+            "/denuncias/1/upvote/",
+            data={"aba": "feed", "campo_localizacao": "estado", "busca_localizacao": "SP"},
+            follow_redirects=True,
+        )
+        self.assertEqual(upvote_response.status_code, 200)
+        self.assertIn(b"Estado: &#34;SP&#34;", upvote_response.data)
+        self.assertIn(b"Apoiado", upvote_response.data)
+
+        mapa_response = self.client.get(
+            "/mapa/?campo_localizacao=regiao&busca_localizacao=Sudeste",
+            follow_redirects=True,
+        )
+        self.assertEqual(mapa_response.status_code, 200)
+        self.assertIn(b"Regiao: &#34;Sudeste&#34;", mapa_response.data)
+        self.assertIn(b"1 resultado", mapa_response.data)
+
+        mapa_vazio_response = self.client.get(
+            "/mapa/?campo_localizacao=cidade&busca_localizacao=Curitiba",
+            follow_redirects=True,
+        )
+        self.assertEqual(mapa_vazio_response.status_code, 200)
+        self.assertIn(b"Nenhum registro encontrado para esse filtro de localizacao.", mapa_vazio_response.data)
+
     def test_status_so_pode_ser_alterado_pelo_autor_ou_admin(self):
         self.cadastrar_usuario(nome="Maria da Silva", cpf="52998224725", email="maria@example.com")
         self.criar_chamado_autenticado()

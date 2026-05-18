@@ -6,7 +6,10 @@ from ..services.chamado_service import (
     adicionar_comentario,
     alternar_upvote,
     calcular_stats,
+    construir_filtro_localizacao,
+    filtrar_chamados_por_localizacao,
     form_defaults,
+    LOCATION_FILTER_CHOICES,
     listar_chamados,
     normalizar_formulario,
     preparar_localizacao,
@@ -23,6 +26,19 @@ def aba_valida(valor: str | None, default: str = "feed") -> str:
     return aba if aba in {"feed", "novo"} else default
 
 
+def filtro_localizacao_da_request(source) -> dict:
+    return construir_filtro_localizacao(source.get("campo_localizacao"), source.get("busca_localizacao"))
+
+
+def args_redirecionamento_feed(source) -> dict:
+    args = {"aba": aba_valida(source.get("aba"), default="feed")}
+    filtro = filtro_localizacao_da_request(source)
+    if filtro["ativo"]:
+        args["campo_localizacao"] = filtro["campo"]
+        args["busca_localizacao"] = filtro["busca"]
+    return args
+
+
 def build_map_data(chamados: list[dict]) -> list[dict]:
     return [
         {
@@ -36,6 +52,11 @@ def build_map_data(chamados: list[dict]) -> list[dict]:
             "status_color": chamado["status_color"],
             "latitude": chamado["latitude"],
             "longitude": chamado["longitude"],
+            "bairro": chamado["bairro"],
+            "cidade": chamado["cidade"],
+            "estado": chamado["estado"],
+            "pais": chamado["pais"],
+            "regiao": chamado["regiao"],
             "tempo_relativo": chamado["tempo_relativo"],
             "upvotes_label": chamado["upvotes_label"],
             "comentarios_label": chamado["comentarios_label"],
@@ -62,9 +83,18 @@ def home():
 
 def mapa_ao_vivo():
     chamados = listar_chamados()
+    location_filter = filtro_localizacao_da_request(request.args)
+    chamados = filtrar_chamados_por_localizacao(chamados, location_filter)
     stats = calcular_stats(chamados)
     map_data = build_map_data(chamados)
-    return render_template("fixcity/mapa.html", chamados=chamados, stats=stats, map_data=map_data)
+    return render_template(
+        "fixcity/mapa.html",
+        chamados=chamados,
+        stats=stats,
+        map_data=map_data,
+        location_filter=location_filter,
+        location_filter_choices=LOCATION_FILTER_CHOICES,
+    )
 
 
 @login_required
@@ -73,6 +103,7 @@ def denuncias():
     form_data = form_defaults(user)
     errors = {}
     active_tab = aba_valida(request.args.get("aba"), default="feed")
+    location_filter = filtro_localizacao_da_request(request.args)
 
     if request.method == "POST":
         form_data = normalizar_formulario(request.form, user)
@@ -82,12 +113,13 @@ def denuncias():
             preparar_localizacao(form_data)
             salvar_chamado(form_data, user)
             flash("Chamado registrado com sucesso.", "success")
-            return redirect(url_for("denuncias", aba="feed"))
+            return redirect(url_for("denuncias", **args_redirecionamento_feed(request.args)))
 
         active_tab = "novo"
         flash("Revise os campos destacados e tente novamente.", "error")
 
     chamados = listar_chamados(viewer_user_id=user["id_usuario"], sort_mode="social")
+    chamados = filtrar_chamados_por_localizacao(chamados, location_filter)
     feed_stats = {
         "total": len(chamados),
         "com_mapa": sum(1 for chamado in chamados if chamado["coordinates_available"]),
@@ -103,6 +135,8 @@ def denuncias():
         errors=errors,
         active_tab=active_tab,
         feed_stats=feed_stats,
+        location_filter=location_filter,
+        location_filter_choices=LOCATION_FILTER_CHOICES,
     )
 
 
@@ -111,15 +145,15 @@ def atualizar_status(pk: int):
     status = (request.form.get("status") or "").strip().upper()
     if status not in STATUS_LABELS:
         flash("Nao foi possivel atualizar o status.", "error")
-        return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+        return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))
 
     if not usuario_pode_atualizar_status(pk, current_user()):
         flash("Voce nao tem permissao para alterar o status desta denuncia.", "error")
-        return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+        return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))
 
     atualizar_status_chamado(pk, status)
     flash("Status atualizado.", "success")
-    return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+    return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))
 
 
 @login_required
@@ -127,11 +161,11 @@ def adicionar_comentario_view(pk: int):
     texto = (request.form.get("texto") or "").strip()
     if not texto:
         flash("Escreva um comentario valido antes de enviar.", "error")
-        return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+        return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))
 
     adicionar_comentario(pk, texto, current_user())
     flash("Comentario adicionado.", "success")
-    return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+    return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))
 
 
 @login_required
@@ -139,4 +173,4 @@ def alternar_upvote_view(pk: int):
     resultado = alternar_upvote(pk, current_user())
     if resultado is None:
         flash("Nao foi possivel registrar seu apoio.", "error")
-    return redirect(url_for("denuncias", aba=aba_valida(request.form.get("aba"))))
+    return redirect(url_for("denuncias", **args_redirecionamento_feed(request.form)))

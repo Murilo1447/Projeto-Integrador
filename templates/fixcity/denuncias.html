@@ -130,6 +130,42 @@
               <button type="button" class="btn btn-secondary quick-action" data-tab-shortcut="feed">Voltar ao feed</button>
             </div>
           </div>
+
+          <div class="side-card">
+            <p class="eyebrow">Filtro de localizacao</p>
+            <form method="get" action="{{ url_for('denuncias') }}" class="location-filter-form">
+              <input type="hidden" name="aba" value="feed">
+
+              <label for="campo-localizacao-feed">Filtrar por</label>
+              <select id="campo-localizacao-feed" name="campo_localizacao">
+                {% for value, label in location_filter_choices %}
+                  <option value="{{ value }}" {% if location_filter.campo == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+
+              <label for="busca-localizacao-feed">Termo</label>
+              <input
+                type="text"
+                id="busca-localizacao-feed"
+                name="busca_localizacao"
+                placeholder="Ex.: Sudeste, SP, Sao Paulo, Brasil"
+                value="{{ location_filter.busca }}"
+              >
+
+              <div class="quick-actions">
+                <button type="submit" class="btn btn-primary quick-action">Aplicar filtro</button>
+                <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-secondary quick-action">Limpar</a>
+              </div>
+            </form>
+
+            {% if location_filter.ativo %}
+              <div class="filter-result-copy">
+                <strong>Filtro ativo</strong>
+                <span>{{ location_filter.descricao }}</span>
+                <span>{{ chamados|length }} resultado{{ '' if chamados|length == 1 else 's' }}</span>
+              </div>
+            {% endif %}
+          </div>
         </aside>
 
         <div class="feed-main">
@@ -161,6 +197,15 @@
                   <div class="social-copy">
                     <h2>{{ chamado.categoria_label }} em {{ chamado.bairro or chamado.cidade or 'local informado' }}</h2>
                     <p>{{ chamado.descricao }}</p>
+                    {% if chamado.localizacao_resumida or chamado.regiao %}
+                      <p class="social-location">
+                        <strong>Local:</strong>
+                        <span>
+                          {{ chamado.localizacao_resumida or 'Localizacao informada' }}
+                          {% if chamado.regiao %} | Regiao {{ chamado.regiao }}{% endif %}
+                        </span>
+                      </p>
+                    {% endif %}
                   </div>
 
                   <div class="engagement-strip">
@@ -197,6 +242,8 @@
                   <div class="social-actions-row">
                     <form method="post" action="{{ url_for('alternar_upvote', pk=chamado.id) }}" class="action-inline">
                       <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
                       <button type="submit" class="btn-upvote {% if chamado.has_upvoted %}is-active{% endif %}">
                         <span class="btn-upvote-icon">^</span>
                         <span>{{ "Apoiado por voce" if chamado.has_upvoted else "Apoiar publicacao" }}</span>
@@ -218,6 +265,8 @@
                   {% if current_user.is_admin or chamado.owner_user_id == current_user.id_usuario %}
                     <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="form-status social-status-form">
                       <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
                       <div class="campo-status">
                         <label for="status-{{ chamado.id }}">Atualizar status</label>
                         <select id="status-{{ chamado.id }}" name="status">
@@ -262,6 +311,8 @@
 
                     <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="form-comentario">
                       <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
                       <label for="comentario-{{ chamado.id }}">Novo comentario</label>
                       <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario como {{ current_user.nome }}" required></textarea>
                       <button type="submit" class="btn btn-primary">Enviar comentario</button>
@@ -272,8 +323,10 @@
             </div>
           {% else %}
             <div class="feed-empty-state" data-reveal>
-              <h3>Nenhuma denuncia registrada ainda.</h3>
-              <p>Use a aba "Nova publicacao" para abrir o primeiro chamado da comunidade.</p>
+              <h3>{{ "Nenhuma denuncia encontrada para esse filtro." if location_filter.ativo else "Nenhuma denuncia registrada ainda." }}</h3>
+              <p>
+                {{ "Tente ajustar regiao, cidade, estado ou pais para ampliar a busca." if location_filter.ativo else 'Use a aba "Nova publicacao" para abrir o primeiro chamado da comunidade.' }}
+              </p>
             </div>
           {% endif %}
         </div>

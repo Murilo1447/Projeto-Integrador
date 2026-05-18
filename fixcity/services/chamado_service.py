@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from typing import Any, Mapping
 
 from services import buscar_endereco_por_cep, geocodificar_endereco
@@ -7,6 +8,48 @@ from ..config import CATEGORIA_LABELS, PALAVRAS_PROIBIDAS, STATUS_CHOICES, STATU
 from ..db import get_db, mysql_enabled, mysql_insert_id
 from ..utils import agora_iso, avatar_payload, cpf_valido, mapping_get, tempo_relativo, user_is_admin
 from .auth_service import buscar_usuario_por_id
+
+BRAZIL_STATE_REGIONS = {
+    "AC": "Norte",
+    "AL": "Nordeste",
+    "AP": "Norte",
+    "AM": "Norte",
+    "BA": "Nordeste",
+    "CE": "Nordeste",
+    "DF": "Centro-Oeste",
+    "ES": "Sudeste",
+    "GO": "Centro-Oeste",
+    "MA": "Nordeste",
+    "MT": "Centro-Oeste",
+    "MS": "Centro-Oeste",
+    "MG": "Sudeste",
+    "PA": "Norte",
+    "PB": "Nordeste",
+    "PR": "Sul",
+    "PE": "Nordeste",
+    "PI": "Nordeste",
+    "RJ": "Sudeste",
+    "RN": "Nordeste",
+    "RS": "Sul",
+    "RO": "Norte",
+    "RR": "Norte",
+    "SC": "Sul",
+    "SP": "Sudeste",
+    "SE": "Nordeste",
+    "TO": "Norte",
+}
+
+LOCATION_FILTER_CHOICES = [
+    ("all", "Todos os campos"),
+    ("regiao", "Regiao"),
+    ("estado", "Estado"),
+    ("cidade", "Cidade"),
+    ("bairro", "Bairro"),
+    ("pais", "Pais"),
+    ("cep", "CEP"),
+    ("endereco", "Endereco"),
+]
+LOCATION_FILTER_LABELS = dict(LOCATION_FILTER_CHOICES)
 
 
 def pluralizar_comentario(total: int) -> str:
@@ -33,6 +76,15 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
     endereco = ", ".join(
         parte for parte in [row["rua"], row["numero"], row["bairro"], row["cidade"]] if parte
     ) or "Endereco nao informado"
+    localizacao_parts = [row["bairro"], row["cidade"], row["estado"], row["pais"]]
+    localizacao_resumida = " - ".join(
+        parte
+        for parte in [
+            ", ".join(parte for parte in localizacao_parts[:2] if parte),
+            ", ".join(parte for parte in localizacao_parts[2:] if parte),
+        ]
+        if parte
+    )
     upvotes_count = int(mapping_get(vote_info, "total", 0) or 0)
     has_upvoted = bool(mapping_get(vote_info, "has_upvoted", 0))
     return {
@@ -48,6 +100,9 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
         "rua": row["rua"] or "",
         "bairro": row["bairro"] or "",
         "cidade": row["cidade"] or "",
+        "estado": row["estado"] or "",
+        "pais": row["pais"] or "",
+        "regiao": row["regiao"] or "",
         "numero": row["numero"] or "",
         "descricao": row["descricao"],
         "status": row["status"],
@@ -58,6 +113,7 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
         "longitude": row["longitude"],
         "tempo_relativo": tempo_relativo(row["criado_em"]),
         "endereco_completo": endereco,
+        "localizacao_resumida": localizacao_resumida,
         "coordinates_available": row["latitude"] is not None and row["longitude"] is not None,
         "comentarios": comments,
         "comentarios_count": len(comments),
@@ -80,6 +136,9 @@ def form_defaults(user=None) -> dict:
         "rua": "",
         "bairro": "",
         "cidade": "",
+        "estado": "",
+        "pais": "",
+        "regiao": "",
         "numero": "",
         "descricao": "",
     }
@@ -120,6 +179,86 @@ def enriquecer_endereco(data: dict):
             data["rua"] = data["rua"] or endereco["rua"]
             data["bairro"] = data["bairro"] or endereco["bairro"]
             data["cidade"] = data["cidade"] or endereco["cidade"]
+            data["estado"] = data["estado"] or endereco["estado"]
+
+
+def inferir_regiao_por_estado(estado: str) -> str:
+    return BRAZIL_STATE_REGIONS.get((estado or "").strip().upper(), "")
+
+
+def normalizar_localizacao(data: dict):
+    data["estado"] = (data.get("estado") or "").strip().upper()
+    data["pais"] = (data.get("pais") or "").strip()
+    data["regiao"] = (data.get("regiao") or "").strip()
+
+    if data["estado"] and not data["regiao"]:
+        data["regiao"] = inferir_regiao_por_estado(data["estado"])
+
+    if data["estado"] and not data["pais"]:
+        data["pais"] = "Brasil"
+
+
+def normalizar_texto_busca(value: str) -> str:
+    texto = unicodedata.normalize("NFKD", (value or "").strip().lower())
+    return "".join(char for char in texto if not unicodedata.combining(char))
+
+
+def filtro_localizacao_defaults() -> dict:
+    return {
+        "campo": "all",
+        "campo_label": LOCATION_FILTER_LABELS["all"],
+        "busca": "",
+        "ativo": False,
+        "descricao": "",
+    }
+
+
+def construir_filtro_localizacao(campo: str | None = None, busca: str | None = None) -> dict:
+    normalized_field = (campo or "all").strip().lower()
+    if normalized_field not in LOCATION_FILTER_LABELS:
+        normalized_field = "all"
+
+    normalized_query = (busca or "").strip()
+    filtro = {
+        "campo": normalized_field,
+        "campo_label": LOCATION_FILTER_LABELS[normalized_field],
+        "busca": normalized_query,
+        "ativo": bool(normalized_query),
+        "descricao": "",
+    }
+    if filtro["ativo"]:
+        filtro["descricao"] = f'{filtro["campo_label"]}: "{normalized_query}"'
+    return filtro
+
+
+def filtrar_chamados_por_localizacao(chamados: list[dict], filtro: dict) -> list[dict]:
+    if not filtro.get("ativo"):
+        return chamados
+
+    field = filtro["campo"]
+    query = normalizar_texto_busca(filtro["busca"])
+
+    def searchable_values(chamado: dict) -> list[str]:
+        if field == "all":
+            return [
+                chamado["regiao"],
+                chamado["cidade"],
+                chamado["estado"],
+                chamado["pais"],
+                chamado["bairro"],
+                chamado["cep"],
+                chamado["rua"],
+                chamado["endereco_completo"],
+            ]
+        if field == "endereco":
+            return [chamado["endereco_completo"], chamado["rua"], chamado["bairro"], chamado["cidade"]]
+        return [chamado.get(field, "")]
+
+    return [
+        chamado
+        for chamado in chamados
+        if any(query in normalizar_texto_busca(value) for value in searchable_values(chamado) if value)
+    ]
 
 
 def endereco_completo(data: dict) -> str:
@@ -129,6 +268,7 @@ def endereco_completo(data: dict) -> str:
 
 def preparar_localizacao(data: dict):
     enriquecer_endereco(data)
+    normalizar_localizacao(data)
     latitude, longitude = geocodificar_endereco(endereco_completo(data))
     data["latitude"] = latitude
     data["longitude"] = longitude
@@ -140,15 +280,17 @@ def salvar_chamado(data: dict, user):
     if mysql_enabled():
         endereco_cursor = db.execute(
             """
-            INSERT INTO endereco (cidade, bairro, nome_rua, cep, estado, numero, referencia)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO endereco (cidade, bairro, nome_rua, cep, estado, pais, regiao, numero, referencia)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 data["cidade"] or "",
                 data["bairro"] or "",
                 data["rua"] or "",
                 data["cep"] or "",
-                "",
+                data["estado"] or "",
+                data["pais"] or "",
+                data["regiao"] or "",
                 data["numero"] or "",
                 "",
             ),
@@ -182,10 +324,10 @@ def salvar_chamado(data: dict, user):
         db.execute(
             """
             INSERT INTO chamados (
-                id_usuario, cpf, nome, email, categoria, cep, rua, bairro, cidade, numero,
+                id_usuario, cpf, nome, email, categoria, cep, rua, bairro, cidade, estado, pais, regiao, numero,
                 descricao, status, latitude, longitude, criado_em, atualizado_em
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user["id_usuario"],
@@ -197,6 +339,9 @@ def salvar_chamado(data: dict, user):
                 data["rua"],
                 data["bairro"],
                 data["cidade"],
+                data["estado"],
+                data["pais"],
+                data["regiao"],
                 data["numero"],
                 data["descricao"],
                 "PROBLEMA",
@@ -368,6 +513,9 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
                 e.nome_rua AS rua,
                 e.bairro,
                 e.cidade,
+                e.estado,
+                e.pais,
+                e.regiao,
                 e.numero,
                 d.descricao,
                 d.status,
