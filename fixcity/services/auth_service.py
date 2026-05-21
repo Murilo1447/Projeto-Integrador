@@ -1,13 +1,10 @@
 import re
-from pathlib import Path
-from uuid import uuid4
 
 from flask import current_app
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 
 from ..db import get_db, mysql_enabled, mysql_insert_id
-from ..utils import agora_iso, cpf_valido, image_extension, imagem_permitida, telefone_valido
+from ..utils import agora_iso, cpf_valido, imagem_permitida, salvar_upload_imagem, telefone_valido
 
 
 def cadastro_defaults() -> dict:
@@ -84,17 +81,7 @@ def validar_cadastro(data: dict, foto) -> dict:
 
 
 def salvar_foto_perfil(foto) -> str:
-    if not foto or not foto.filename:
-        return ""
-
-    filename = secure_filename(foto.filename)
-    extensao = image_extension(filename)
-    unique_name = f"{uuid4().hex}.{extensao}"
-    relative_path = Path(current_app.config["PROFILE_UPLOAD_SUBDIR"]) / unique_name
-    target_path = Path(current_app.static_folder) / relative_path
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    foto.save(target_path)
-    return relative_path.as_posix()
+    return salvar_upload_imagem(foto, current_app.config["PROFILE_UPLOAD_SUBDIR"])
 
 
 def criar_usuario(data: dict, foto_path: str) -> int:

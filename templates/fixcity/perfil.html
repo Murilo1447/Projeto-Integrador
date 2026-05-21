@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil - {{ perfil.nome }}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="site-shell social-page">
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('home') }}" class="brand-lockup">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+        <div>
+          <strong>FixCity</strong>
+          <span>Perfil publico da comunidade</span>
+        </div>
+      </a>
+
+      <nav class="nav-actions">
+        <a href="{{ url_for('home') }}" class="btn btn-ghost">Inicio</a>
+        <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa</a>
+        <a href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}" class="btn btn-secondary">Feed</a>
+        {% if current_user and current_user.is_admin %}
+          <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="social-shell">
+    <section class="section-shell">
+      <div class="hero-grid">
+        <article class="hero-copy" data-reveal>
+          <div class="perfil-card profile-hero-card">
+            <div class="avatar avatar-grande">
+              {% if perfil.avatar_url %}
+                <img src="{{ perfil.avatar_url }}" alt="Foto de perfil de {{ perfil.nome }}">
+              {% else %}
+                <span>{{ perfil.avatar_iniciais }}</span>
+              {% endif %}
+            </div>
+            <div>
+              <p class="eyebrow">Morador da comunidade</p>
+              <h1>{{ perfil.nome }}</h1>
+              <p class="hero-description">{{ perfil.email }}</p>
+              {% if perfil.is_admin %}
+                <span class="priority-badge media">Administrador</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+
+        <aside class="hero-panel" data-reveal>
+          <div class="hero-panel-head">
+            <span class="eyebrow">Impacto</span>
+            <strong>Contribuicoes publicas</strong>
+          </div>
+          <div class="hero-post-stack">
+            <article class="hero-post-card">
+              <strong>{{ perfil.total_chamados }}</strong>
+              <p>chamados publicados</p>
+            </article>
+            <article class="hero-post-card">
+              <strong>{{ perfil.total_apoios_recebidos }}</strong>
+              <p>apoios recebidos</p>
+            </article>
+            <article class="hero-post-card">
+              <strong>{{ perfil.total_comentarios }}</strong>
+              <p>comentarios recentes</p>
+            </article>
+            <article class="hero-post-card">
+              <strong>{{ perfil.prioridades_altas }}</strong>
+              <p>chamados em alta prioridade</p>
+            </article>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section-shell feed-layout">
+      <div class="feed-main">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Chamados</p>
+            <h2>Publicacoes de {{ perfil.nome }}</h2>
+          </div>
+        </div>
+
+        {% if perfil.chamados %}
+          <div class="social-feed">
+            {% for chamado in perfil.chamados %}
+              <article class="social-post" data-reveal>
+                <div class="social-post-top">
+                  <div class="author-copy">
+                    <strong>{{ chamado.categoria_label }}</strong>
+                    <span>{{ chamado.tempo_relativo }} | {{ chamado.endereco_completo }}</span>
+                  </div>
+                  <div class="post-top-meta">
+                    <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
+                    <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                  </div>
+                </div>
+                <div class="social-copy">
+                  <h2>{{ chamado.categoria_label }} em {{ chamado.bairro or chamado.cidade or 'local informado' }}</h2>
+                  <p>{{ chamado.descricao }}</p>
+                </div>
+                {% if chamado.foto_chamado_url %}
+                  <div class="post-media-shell">
+                    <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denuncia {{ chamado.categoria_label }}" class="post-media-image">
+                  </div>
+                {% endif %}
+                <div class="engagement-strip">
+                  <span>{{ chamado.upvotes_label }}</span>
+                  <span>{{ chamado.comentarios_label }}</span>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="feed-empty-state">
+            <h3>Esse perfil ainda nao publicou chamados.</h3>
+          </div>
+        {% endif %}
+      </div>
+
+      <aside class="feed-sidebar">
+        <div class="side-card" data-reveal>
+          <p class="eyebrow">Comentarios recentes</p>
+          {% if perfil.comentarios %}
+            <div class="notification-list">
+              {% for comentario in perfil.comentarios %}
+                <a class="notification-item" href="{{ url_for('denuncias', aba='feed') }}#discussion-{{ comentario.chamado_id }}">
+                  <strong>{{ comentario.tempo_relativo }}</strong>
+                  <p>{{ comentario.texto }}</p>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="helper-copy">Sem comentarios recentes publicados por este perfil.</p>
+          {% endif %}
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/denuncias-feed.js') }}"></script>
+</body>
+</html>

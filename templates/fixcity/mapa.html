@@ -34,6 +34,16 @@
       <nav class="nav-actions">
         <a href="{{ url_for('home') }}" class="btn btn-secondary">Voltar ao inicio</a>
         {% if current_user %}
+          <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
+          <a href="{{ filtered_feed_url }}#notificacoes" class="btn btn-ghost notification-link">
+            Alertas
+            {% if notification_summary.unread_count %}
+              <span class="notification-badge">{{ notification_summary.unread_count }}</span>
+            {% endif %}
+          </a>
+          {% if current_user.is_admin %}
+            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
+          {% endif %}
           <a href="{{ filtered_feed_url }}" class="btn btn-ghost">Feed</a>
           <a href="{{ url_for('denuncias', aba='novo') }}" class="btn btn-primary">Nova denuncia</a>
         {% else %}
@@ -111,6 +121,7 @@
 
     <div class="panel-actions">
       <button type="button" id="open-create-panel" class="btn btn-primary">Criar denuncia</button>
+      <button type="button" id="toggle-heatmap" class="btn btn-secondary">Heatmap</button>
       <button type="button" id="reset-map-view" class="btn btn-secondary">Resetar mapa</button>
     </div>
 
@@ -128,9 +139,10 @@
             <article class="map-quick-item" data-map-post-trigger data-post-id="{{ chamado.id }}">
               <div class="map-quick-head">
                 <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
                 <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
               </div>
-              <strong>{{ chamado.autor_exibicao }}</strong>
+              <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
               <p>{{ chamado.descricao }}</p>
               <span>{{ chamado.endereco_completo }}</span>
             </article>
@@ -170,6 +182,10 @@
     <div class="panel-section">
       <strong>Local</strong>
       <p id="map-post-address" class="panel-copy"></p>
+    </div>
+
+    <div class="panel-section panel-image-shell" id="map-post-image-shell" hidden>
+      <img id="map-post-image" class="panel-image" alt="Imagem da denuncia selecionada">
     </div>
 
     <div class="panel-tags" id="map-post-tags"></div>
@@ -220,6 +236,7 @@
 
   <script id="map-data" type="application/json">{{ map_data | tojson }}</script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

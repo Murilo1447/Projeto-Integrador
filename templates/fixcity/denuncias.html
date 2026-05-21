@@ -24,6 +24,16 @@
 
       <nav class="nav-actions">
         <a href="{{ url_for('home') }}" class="btn btn-ghost">Voltar ao inicio</a>
+        <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
+        <a href="{{ url_for('denuncias', aba='feed') }}#notificacoes" class="btn btn-ghost notification-link">
+          Alertas
+          {% if notification_summary.unread_count %}
+            <span class="notification-badge">{{ notification_summary.unread_count }}</span>
+          {% endif %}
+        </a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
+        {% endif %}
         <div class="user-pill">
           <div class="avatar">
             {% if current_user.foto_perfil %}
@@ -166,6 +176,29 @@
               </div>
             {% endif %}
           </div>
+
+          {% if notification_summary.recent %}
+            <div class="side-card" id="notificacoes">
+              <p class="eyebrow">Notificacoes</p>
+              <div class="notification-list">
+                {% for notification in notification_summary.recent %}
+                  <a
+                    class="notification-item {% if not notification.lida %}is-unread{% endif %}"
+                    href="{{ url_for('denuncias', aba='feed') }}#denuncia-{{ notification.chamado_id }}"
+                  >
+                    <strong>{{ notification.titulo }}</strong>
+                    <p>{{ notification.mensagem }}</p>
+                  </a>
+                {% endfor %}
+              </div>
+              {% if notification_summary.unread_count %}
+                <form method="post" action="{{ url_for('marcar_notificacoes_lidas') }}">
+                  <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}#notificacoes">
+                  <button type="submit" class="btn btn-secondary quick-action">Marcar tudo como lido</button>
+                </form>
+              {% endif %}
+            </div>
+          {% endif %}
         </aside>
 
         <div class="feed-main">
@@ -183,13 +216,14 @@
                         {% endif %}
                       </div>
                       <div class="author-copy">
-                        <strong>{{ chamado.autor_exibicao }}</strong>
+                        <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
                         <span>{{ chamado.tempo_relativo }} · {{ chamado.endereco_completo }}</span>
                       </div>
                     </div>
 
                     <div class="post-top-meta">
                       <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                      <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
                       <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
                     </div>
                   </div>
@@ -215,6 +249,12 @@
                       <span>Contato: {{ chamado.email }}</span>
                     {% endif %}
                   </div>
+
+                  {% if chamado.foto_chamado_url %}
+                    <div class="post-media-shell">
+                      <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denuncia {{ chamado.categoria_label }}" class="post-media-image">
+                    </div>
+                  {% endif %}
 
                   {% if chamado.coordinates_available %}
                     <div class="mini-map-shell">
@@ -297,7 +337,13 @@
                                     <span>{{ comentario.avatar_iniciais }}</span>
                                   {% endif %}
                                 </div>
-                                <strong>{{ comentario.autor_exibicao }}</strong>
+                                <strong>
+                                  {% if comentario.autor_user_id %}
+                                    <a href="{{ url_for('perfil_publico', user_id=comentario.autor_user_id) }}">{{ comentario.autor_exibicao }}</a>
+                                  {% else %}
+                                    {{ comentario.autor_exibicao }}
+                                  {% endif %}
+                                </strong>
                               </div>
                               <span>{{ comentario.tempo_relativo }}</span>
                             </div>
@@ -345,7 +391,7 @@
           </p>
         </div>
 
-        <form method="post" class="composer-form">
+        <form method="post" class="composer-form" enctype="multipart/form-data">
           <div class="perfil-card">
             <div class="avatar avatar-grande">
               {% if current_user.foto_perfil %}
@@ -404,6 +450,10 @@
           <label for="descricao">Descricao do problema</label>
           <textarea id="descricao" name="descricao" placeholder="Conte o que esta acontecendo, como afeta a regiao e o que merece prioridade..." required>{{ form_data.descricao }}</textarea>
           {% if errors.descricao %}<small class="field-error">{{ errors.descricao }}</small>{% endif %}
+
+          <label for="foto_chamado">Foto da denuncia</label>
+          <input type="file" id="foto_chamado" name="foto_chamado" accept="image/png,image/jpeg,image/webp,image/gif">
+          {% if errors.foto_chamado %}<small class="field-error">{{ errors.foto_chamado }}</small>{% endif %}
 
           <button type="submit" class="btn btn-primary btn-publicar">Registrar chamado</button>
         </form>

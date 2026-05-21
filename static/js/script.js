@@ -155,6 +155,7 @@ function setupMap() {
   const openCreatePanelButton = document.getElementById("open-create-panel");
   const openCreatePanelInsideButton = document.getElementById("open-create-panel-inside");
   const resetMapViewButton = document.getElementById("reset-map-view");
+  const toggleHeatmapButton = document.getElementById("toggle-heatmap");
   const mapWrapper = document.querySelector(".map-wrapper");
   const mapSection = document.getElementById("mapa");
   const panelBackdrop = document.getElementById("floating-panel-backdrop");
@@ -167,6 +168,7 @@ function setupMap() {
   let searchMarker = null;
   let activePanel = null;
   let defaultBounds = null;
+  let heatmapVisible = false;
 
   const map = L.map("map", {
     zoomControl: false,
@@ -178,6 +180,9 @@ function setupMap() {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap",
   }).addTo(map);
+
+  const markerLayer = L.layerGroup().addTo(map);
+  let heatLayer = null;
 
   function unlockMap() {
     map.scrollWheelZoom.enable();
@@ -299,6 +304,8 @@ function setupMap() {
     const tags = detailPanel.querySelector("#map-post-tags");
     const comments = detailPanel.querySelector("#map-post-comments");
     const feedLink = detailPanel.querySelector("#map-post-feed-link");
+    const imageShell = detailPanel.querySelector("#map-post-image-shell");
+    const image = detailPanel.querySelector("#map-post-image");
 
     if (title) {
       title.textContent = chamado.categoria;
@@ -321,12 +328,24 @@ function setupMap() {
     }
     if (tags) {
       tags.innerHTML = `
+        <span class="panel-tag">${escapeHtml(chamado.priority_label)}</span>
         <span class="panel-tag">${escapeHtml(chamado.upvotes_label)}</span>
         <span class="panel-tag">${escapeHtml(chamado.comentarios_label)}</span>
       `;
     }
     if (comments) {
       comments.innerHTML = renderComments(chamado.comentarios);
+    }
+    if (imageShell && image) {
+      if (chamado.foto_chamado_url) {
+        image.src = chamado.foto_chamado_url;
+        image.hidden = false;
+        imageShell.hidden = false;
+      } else {
+        image.removeAttribute("src");
+        image.hidden = true;
+        imageShell.hidden = true;
+      }
     }
     if (feedLink) {
       feedLink.href = feedUrl;
@@ -376,6 +395,29 @@ function setupMap() {
     resetMapViewButton.addEventListener("click", resetMapView);
   }
 
+  if (toggleHeatmapButton && heatLayer) {
+    toggleHeatmapButton.addEventListener("click", () => {
+      heatmapVisible = !heatmapVisible;
+
+      if (heatmapVisible) {
+        if (map.hasLayer(markerLayer)) {
+          map.removeLayer(markerLayer);
+        }
+        heatLayer.addTo(map);
+        toggleHeatmapButton.textContent = "Ver marcadores";
+      } else {
+        if (map.hasLayer(heatLayer)) {
+          map.removeLayer(heatLayer);
+        }
+        markerLayer.addTo(map);
+        toggleHeatmapButton.textContent = "Heatmap";
+      }
+    });
+  } else if (toggleHeatmapButton) {
+    toggleHeatmapButton.disabled = true;
+    toggleHeatmapButton.textContent = "Heatmap indisponivel";
+  }
+
   if (panelBackdrop) {
     panelBackdrop.addEventListener("click", closeFloatingPanels);
   }
@@ -399,7 +441,7 @@ function setupMap() {
         color: "#ffffff",
         weight: 2,
         fillOpacity: 0.92,
-      }).addTo(map);
+      }).addTo(markerLayer);
 
       marker.on("click", () => {
         openDetailPanel(chamado);
@@ -411,6 +453,23 @@ function setupMap() {
         searchText: `${chamado.categoria} ${chamado.endereco} ${chamado.descricao} ${chamado.bairro || ""} ${chamado.cidade || ""} ${chamado.estado || ""} ${chamado.pais || ""} ${chamado.regiao || ""}`.toLowerCase(),
       };
     });
+
+  if (typeof L.heatLayer === "function" && markers.length) {
+    heatLayer = L.heatLayer(
+      markers.map((item) => [item.latitude, item.longitude, item.heat_weight || 0.35]),
+      {
+        radius: 28,
+        blur: 22,
+        maxZoom: 17,
+        gradient: {
+          0.2: "#8ad18f",
+          0.45: "#f0c54b",
+          0.7: "#f08b4b",
+          1.0: "#c94d46",
+        },
+      }
+    );
+  }
 
   if (markers.length) {
     defaultBounds = L.latLngBounds(markers.map((item) => [item.latitude, item.longitude]));

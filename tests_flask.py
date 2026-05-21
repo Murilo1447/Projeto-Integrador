@@ -51,24 +51,34 @@ class FixCityFlaskTests(unittest.TestCase):
 
         return response
 
-    def criar_chamado_autenticado(self, coords=(None, None)):
+    def criar_chamado_autenticado(self, coords=(None, None), com_foto=False):
+        data = {
+            "categoria": "BURACO",
+            "cep": "01001000",
+            "rua": "",
+            "bairro": "",
+            "cidade": "",
+            "numero": "123",
+            "descricao": "Existe um buraco grande na via.",
+        }
+        if com_foto:
+            data["foto_chamado"] = (io.BytesIO(b"foto-denuncia"), "denuncia.png")
+
         with patch("fixcity.services.chamado_service.geocodificar_endereco", return_value=coords), patch(
             "fixcity.services.chamado_service.buscar_endereco_por_cep",
             return_value={"rua": "Rua A", "bairro": "Centro", "cidade": "Sao Paulo", "estado": "SP"},
         ):
-            return self.client.post(
+            response = self.client.post(
                 "/denuncias/",
-                data={
-                    "categoria": "BURACO",
-                    "cep": "01001000",
-                    "rua": "",
-                    "bairro": "",
-                    "cidade": "",
-                    "numero": "123",
-                    "descricao": "Existe um buraco grande na via.",
-                },
+                data=data,
                 follow_redirects=True,
             )
+        if com_foto:
+            with self.app.app_context():
+                row = get_db().execute("SELECT foto_chamado FROM chamados ORDER BY id DESC LIMIT 1").fetchone()
+                if row and row["foto_chamado"]:
+                    self.created_uploads.append(Path(self.app.static_folder) / row["foto_chamado"])
+        return response
 
     def test_paginas_publicas_carregam_e_denuncias_exige_login(self):
         self.assertEqual(self.client.get("/").status_code, 200)
@@ -207,6 +217,81 @@ class FixCityFlaskTests(unittest.TestCase):
         with self.app.app_context():
             status_final = get_db().execute("SELECT status FROM chamados WHERE id = ?", (1,)).fetchone()["status"]
         self.assertEqual(status_final, "RESOLVIDO")
+
+    def test_denuncia_com_foto_perfil_publico_e_heatmap_aparecem(self):
+        self.cadastrar_usuario()
+        response = self.criar_chamado_autenticado(coords=(-23.55052, -46.633308), com_foto=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"uploads/calls/", response.data)
+        self.assertIn(b"Baixa prioridade", response.data)
+
+        perfil_response = self.client.get("/usuarios/1/")
+        self.assertEqual(perfil_response.status_code, 200)
+        self.assertIn(b"Publicacoes de Maria da Silva", perfil_response.data)
+        self.assertIn(b"uploads/calls/", perfil_response.data)
+
+        home_response = self.client.get("/")
+        self.assertEqual(home_response.status_code, 200)
+        self.assertIn(b"toggle-heatmap", home_response.data)
+        self.assertIn(b"leaflet-heat.js", home_response.data)
+
+        mapa_response = self.client.get("/mapa/")
+        self.assertEqual(mapa_response.status_code, 200)
+        self.assertIn(b"Heatmap", mapa_response.data)
+        self.assertIn(b"leaflet-heat.js", mapa_response.data)
+
+    def test_notificacoes_e_dashboard_admin_funcionam(self):
+        self.cadastrar_usuario(nome="Maria da Silva", cpf="52998224725", email="maria@example.com")
+        self.criar_chamado_autenticado()
+        self.client.post("/logout/", follow_redirects=True)
+
+        self.cadastrar_usuario(nome="Joao Pereira", cpf="11144477735", email="joao@example.com")
+        self.client.post(
+            "/denuncias/1/comentarios/",
+            data={"texto": "Tambem vi esse problema.", "aba": "feed"},
+            follow_redirects=True,
+        )
+        self.client.post("/denuncias/1/upvote/", data={"aba": "feed"}, follow_redirects=True)
+        self.client.post("/logout/", follow_redirects=True)
+
+        self.client.post(
+            "/login/",
+            data={"email": "maria@example.com", "senha": "senha123"},
+            follow_redirects=True,
+        )
+        notificacoes_response = self.client.get("/denuncias/?aba=feed", follow_redirects=True)
+        self.assertEqual(notificacoes_response.status_code, 200)
+        self.assertIn(b"Novo comentario no seu chamado", notificacoes_response.data)
+        self.assertIn(b"Seu chamado recebeu apoio", notificacoes_response.data)
+
+        with self.app.app_context():
+            notificacoes = get_db().execute("SELECT COUNT(*) AS total FROM notificacoes WHERE lida = 0").fetchone()
+        self.assertEqual(notificacoes["total"], 2)
+
+        self.client.post(
+            "/notificacoes/marcar-lidas/",
+            data={"next": "/denuncias/?aba=feed"},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            notificacoes_lidas = get_db().execute("SELECT COUNT(*) AS total FROM notificacoes WHERE lida = 1").fetchone()
+            db = get_db()
+            db.execute("UPDATE usuarios SET is_admin = 1 WHERE email = ?", ("maria@example.com",))
+            db.commit()
+        self.assertEqual(notificacoes_lidas["total"], 2)
+
+        admin_response = self.client.get("/admin/", follow_redirects=True)
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertIn(b"Painel administrativo", admin_response.data)
+        self.assertIn(b"Tambem vi esse problema.", admin_response.data)
+
+        delete_response = self.client.post("/admin/comentarios/1/excluir/", follow_redirects=True)
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertIn(b"Comentario removido pelo painel administrativo.", delete_response.data)
+        with self.app.app_context():
+            comentario = get_db().execute("SELECT 1 FROM comentarios WHERE id = 1").fetchone()
+        self.assertIsNone(comentario)
 
 
 if __name__ == "__main__":

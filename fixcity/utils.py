@@ -1,7 +1,10 @@
 import re
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
 
-from flask import g, request, url_for
+from flask import current_app, g, request, url_for
+from werkzeug.utils import secure_filename
 
 from .config import ALLOWED_IMAGE_EXTENSIONS, TIMEZONE
 
@@ -75,6 +78,23 @@ def image_extension(filename: str) -> str:
 
 def imagem_permitida(filename: str) -> bool:
     return image_extension(filename) in ALLOWED_IMAGE_EXTENSIONS
+
+
+def salvar_upload_imagem(arquivo, upload_subdir: str) -> str:
+    if not arquivo or not arquivo.filename:
+        return ""
+
+    filename = secure_filename(arquivo.filename)
+    extensao = image_extension(filename)
+    if not extensao:
+        return ""
+
+    unique_name = f"{uuid4().hex}.{extensao}"
+    relative_path = Path(upload_subdir) / unique_name
+    target_path = Path(current_app.static_folder) / relative_path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    arquivo.save(target_path)
+    return relative_path.as_posix()
 
 
 def avatar_payload(nome: str, foto_perfil: str) -> dict:

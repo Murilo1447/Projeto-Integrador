@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin - FixCity</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="site-shell social-page">
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('home') }}" class="brand-lockup">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+        <div>
+          <strong>FixCity</strong>
+          <span>Painel administrativo</span>
+        </div>
+      </a>
+
+      <nav class="nav-actions">
+        <a href="{{ url_for('home') }}" class="btn btn-ghost">Inicio</a>
+        <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa</a>
+        <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-secondary">Feed</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="social-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-wrapper">
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="mensagem {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <section class="social-hero section-shell">
+      <div class="social-hero-copy" data-reveal>
+        <p class="eyebrow">Governanca</p>
+        <h1>Visao central da atividade da comunidade.</h1>
+        <p class="hero-description">
+          Acompanhe prioridades, contribuintes mais ativos e modere comentarios recentes sem sair do painel.
+        </p>
+      </div>
+    </section>
+
+    <section class="section-shell">
+      <div class="stats-grid">
+        <article class="stat-card neutral" data-reveal>
+          <span>Usuarios</span>
+          <strong>{{ dashboard.stats.usuarios }}</strong>
+          <p>contas ativas</p>
+        </article>
+        <article class="stat-card danger" data-reveal>
+          <span>Alta prioridade</span>
+          <strong>{{ dashboard.stats.prioridade_alta }}</strong>
+          <p>chamados pedindo atencao</p>
+        </article>
+        <article class="stat-card warning" data-reveal>
+          <span>Chamados</span>
+          <strong>{{ dashboard.stats.chamados }}</strong>
+          <p>registros monitorados</p>
+        </article>
+        <article class="stat-card success" data-reveal>
+          <span>Com foto</span>
+          <strong>{{ dashboard.stats.com_foto }}</strong>
+          <p>denuncias com evidencia visual</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-shell feed-layout">
+      <div class="feed-main">
+        <div class="side-card" data-reveal>
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Prioridades</p>
+              <h2>Chamados mais urgentes</h2>
+            </div>
+          </div>
+          <div class="preview-list">
+            {% for chamado in dashboard.chamados_prioritarios %}
+              <article class="preview-card">
+                <div class="preview-card-top">
+                  <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                  <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
+                  <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                </div>
+                <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
+                <p>{{ chamado.descricao }}</p>
+                <div class="preview-meta">
+                  <span>{{ chamado.endereco_completo }}</span>
+                  <span>{{ chamado.upvotes_label }}</span>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="side-card" data-reveal>
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Moderacao</p>
+              <h2>Comentarios recentes</h2>
+            </div>
+          </div>
+          <div class="comentarios-lista">
+            {% for comentario in dashboard.comentarios_recentes %}
+              <article class="comentario">
+                <div class="comentario-topo">
+                  <strong>
+                    {% if comentario.autor_user_id %}
+                      <a href="{{ url_for('perfil_publico', user_id=comentario.autor_user_id) }}">{{ comentario.autor_exibicao }}</a>
+                    {% else %}
+                      {{ comentario.autor_exibicao }}
+                    {% endif %}
+                  </strong>
+                  <span>{{ comentario.tempo_relativo }}</span>
+                </div>
+                <p>{{ comentario.texto }}</p>
+                <form method="post" action="{{ url_for('excluir_comentario_admin', comment_id=comentario.id) }}">
+                  <button type="submit" class="btn btn-secondary">Excluir comentario</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <aside class="feed-sidebar">
+        <div class="side-card" data-reveal>
+          <p class="eyebrow">Comunidade ativa</p>
+          <div class="notification-list">
+            {% for usuario in dashboard.usuarios_ativos %}
+              <a class="notification-item" href="{{ url_for('perfil_publico', user_id=usuario.id_usuario) }}">
+                <strong>{{ usuario.nome }}</strong>
+                <p>{{ usuario.total_chamados }} chamados · {{ usuario.total_comentarios }} comentarios</p>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/denuncias-feed.js') }}"></script>
+</body>
+</html>

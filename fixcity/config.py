@@ -60,6 +60,7 @@ SQLITE_SCHEMA_STATEMENTS = [
         regiao TEXT DEFAULT '',
         numero TEXT DEFAULT '',
         descricao TEXT NOT NULL,
+        foto_chamado TEXT DEFAULT '',
         status TEXT NOT NULL DEFAULT 'PROBLEMA',
         latitude REAL,
         longitude REAL,
@@ -88,6 +89,22 @@ SQLITE_SCHEMA_STATEMENTS = [
         criado_em TEXT NOT NULL,
         UNIQUE (id_usuario, chamado_id),
         FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
+        FOREIGN KEY (chamado_id) REFERENCES chamados (id) ON DELETE CASCADE
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS notificacoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        destinatario_usuario_id INTEGER NOT NULL,
+        ator_usuario_id INTEGER,
+        chamado_id INTEGER,
+        tipo TEXT NOT NULL,
+        titulo TEXT NOT NULL,
+        mensagem TEXT NOT NULL,
+        lida INTEGER NOT NULL DEFAULT 0,
+        criado_em TEXT NOT NULL,
+        FOREIGN KEY (destinatario_usuario_id) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
+        FOREIGN KEY (ator_usuario_id) REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
         FOREIGN KEY (chamado_id) REFERENCES chamados (id) ON DELETE CASCADE
     )
     """,
@@ -134,6 +151,7 @@ MYSQL_SCHEMA_STATEMENTS = [
         categoria VARCHAR(30) NOT NULL,
         data_denuncia VARCHAR(40) NOT NULL,
         descricao TEXT NOT NULL,
+        foto_chamado VARCHAR(255) DEFAULT '',
         status ENUM('PROBLEMA', 'PENDENTE', 'RESOLVIDO') NOT NULL DEFAULT 'PROBLEMA',
         latitude DOUBLE,
         longitude DOUBLE,
@@ -177,6 +195,28 @@ MYSQL_SCHEMA_STATEMENTS = [
             ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """,
+    """
+    CREATE TABLE IF NOT EXISTS notificacoes (
+        id_notificacao INT AUTO_INCREMENT PRIMARY KEY,
+        destinatario_usuario_id INT NOT NULL,
+        ator_usuario_id INT NULL,
+        id_denuncia INT NULL,
+        tipo VARCHAR(40) NOT NULL,
+        titulo VARCHAR(180) NOT NULL,
+        mensagem TEXT NOT NULL,
+        lida TINYINT(1) NOT NULL DEFAULT 0,
+        criado_em VARCHAR(40) NOT NULL,
+        CONSTRAINT fk_notificacoes_destinatario
+            FOREIGN KEY (destinatario_usuario_id) REFERENCES usuarios (id_usuario)
+            ON DELETE CASCADE,
+        CONSTRAINT fk_notificacoes_ator
+            FOREIGN KEY (ator_usuario_id) REFERENCES usuarios (id_usuario)
+            ON DELETE SET NULL,
+        CONSTRAINT fk_notificacoes_denuncia
+            FOREIGN KEY (id_denuncia) REFERENCES denuncias (id_denuncia)
+            ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
 ]
 
 
@@ -199,5 +239,6 @@ def default_app_config() -> dict:
         "MYSQL_DATABASE": os.environ.get("FIXCITY_MYSQL_DATABASE", "FixcityDB"),
         "MYSQL_CHARSET": os.environ.get("FIXCITY_MYSQL_CHARSET", "utf8mb4"),
         "PROFILE_UPLOAD_SUBDIR": "uploads/profiles",
+        "CALL_UPLOAD_SUBDIR": "uploads/calls",
         "MAX_CONTENT_LENGTH": 5 * 1024 * 1024,
     }

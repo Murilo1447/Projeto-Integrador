@@ -32,6 +32,16 @@
         <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa ao vivo</a>
 
         {% if current_user %}
+          <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
+          <a href="{{ url_for('denuncias', aba='feed') }}#notificacoes" class="btn btn-ghost notification-link">
+            Alertas
+            {% if notification_summary.unread_count %}
+              <span class="notification-badge">{{ notification_summary.unread_count }}</span>
+            {% endif %}
+          </a>
+          {% if current_user.is_admin %}
+            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
+          {% endif %}
           <div class="user-pill">
             <div class="avatar">
               {% if current_user.foto_perfil %}
@@ -124,14 +134,20 @@
                         {% endif %}
                       </div>
                       <div>
-                        <strong>{{ chamado.autor_exibicao }}</strong>
+                        <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
                         <span>{{ chamado.tempo_relativo }}</span>
                       </div>
                     </div>
+                    <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
                     <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
                   </div>
                   <h3>{{ chamado.categoria_label }} em {{ chamado.bairro or chamado.cidade or 'area informada' }}</h3>
                   <p>{{ chamado.descricao }}</p>
+                  {% if chamado.foto_chamado_url %}
+                    <div class="post-media-shell compact-media">
+                      <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denuncia {{ chamado.categoria_label }}" class="post-media-image">
+                    </div>
+                  {% endif %}
                   <div class="hero-post-meta">
                     <span>{{ chamado.upvotes_label }}</span>
                     <span>{{ chamado.comentarios_label }}</span>
@@ -199,6 +215,7 @@
 
         <div class="map-toolbar">
           <button id="open-create-panel" type="button" class="btn btn-primary">Criar denuncia</button>
+          <button id="toggle-heatmap" type="button" class="btn btn-secondary">Heatmap</button>
           <button id="toggle-map" type="button" class="btn btn-secondary">Expandir mapa</button>
         </div>
       </div>
@@ -218,9 +235,10 @@
                 <article class="preview-card is-interactive" data-map-post-trigger data-post-id="{{ chamado.id }}">
                   <div class="preview-card-top">
                     <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                    <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
                     <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
                   </div>
-                  <strong>{{ chamado.autor_exibicao }}</strong>
+                  <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
                   <p>{{ chamado.descricao }}</p>
                   <div class="preview-meta">
                     <span>{{ chamado.endereco_completo }}</span>
@@ -243,6 +261,26 @@
             <li>Mapa integrado para localizar rapidamente cada problema.</li>
           </ul>
         </div>
+
+        {% if comentarios_recentes %}
+          <div class="side-card">
+            <p class="eyebrow">Comentarios recentes</p>
+            <div class="notification-list">
+              {% for comentario in comentarios_recentes %}
+                <a class="notification-item" href="{{ url_for('denuncias', aba='feed') }}#discussion-{{ comentario.chamado_id }}">
+                  <strong>
+                    {% if comentario.autor_user_id %}
+                      {{ comentario.autor_exibicao }}
+                    {% else %}
+                      Morador
+                    {% endif %}
+                  </strong>
+                  <p>{{ comentario.texto }}</p>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
       </aside>
     </section>
 
@@ -304,6 +342,10 @@
     <div class="panel-section">
       <strong>Local</strong>
       <p id="map-post-address" class="panel-copy"></p>
+    </div>
+
+    <div class="panel-section panel-image-shell" id="map-post-image-shell" hidden>
+      <img id="map-post-image" class="panel-image" alt="Imagem da denuncia selecionada">
     </div>
 
     <div class="panel-tags" id="map-post-tags"></div>
@@ -388,6 +430,7 @@
 
   <script id="map-data" type="application/json">{{ map_data | tojson }}</script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

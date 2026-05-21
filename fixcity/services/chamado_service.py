@@ -1,13 +1,26 @@
 import re
 import unicodedata
+from datetime import datetime
 from typing import Any, Mapping
+
+from flask import current_app
 
 from services import buscar_endereco_por_cep, geocodificar_endereco
 
-from ..config import CATEGORIA_LABELS, PALAVRAS_PROIBIDAS, STATUS_CHOICES, STATUS_CORES, STATUS_LABELS
+from ..config import CATEGORIA_LABELS, PALAVRAS_PROIBIDAS, STATUS_CHOICES, STATUS_CORES, STATUS_LABELS, TIMEZONE
 from ..db import get_db, mysql_enabled, mysql_insert_id
-from ..utils import agora_iso, avatar_payload, cpf_valido, mapping_get, tempo_relativo, user_is_admin
+from ..utils import (
+    agora_iso,
+    avatar_payload,
+    cpf_valido,
+    imagem_permitida,
+    mapping_get,
+    salvar_upload_imagem,
+    tempo_relativo,
+    user_is_admin,
+)
 from .auth_service import buscar_usuario_por_id
+from .notification_service import criar_notificacao
 
 BRAZIL_STATE_REGIONS = {
     "AC": "Norte",
@@ -50,6 +63,10 @@ LOCATION_FILTER_CHOICES = [
     ("endereco", "Endereco"),
 ]
 LOCATION_FILTER_LABELS = dict(LOCATION_FILTER_CHOICES)
+PRIORITY_THRESHOLDS = {
+    "alta": 24,
+    "media": 13,
+}
 
 
 def pluralizar_comentario(total: int) -> str:
@@ -60,10 +77,35 @@ def pluralizar_apoio(total: int) -> str:
     return f"{total} apoio" if total == 1 else f"{total} apoios"
 
 
+def calcular_prioridade(status: str, upvotes_count: int, comentarios_count: int, criado_em: str, has_coordinates: bool) -> dict:
+    agora = datetime.now(TIMEZONE)
+    criado = datetime.fromisoformat(criado_em)
+    dias_aberto = max((agora - criado).days, 0)
+    horas_aberto = max(int((agora - criado).total_seconds() // 3600), 0)
+    age_bonus = min(dias_aberto * 2 + (1 if horas_aberto >= 12 else 0), 18)
+    engagement_bonus = upvotes_count * 4 + comentarios_count * 2
+    status_bonus = 8 if status == "PROBLEMA" else 4 if status == "PENDENTE" else -8
+    location_bonus = 2 if has_coordinates else 0
+    score = max(0, engagement_bonus + age_bonus + status_bonus + location_bonus)
+
+    if score >= PRIORITY_THRESHOLDS["alta"]:
+        return {"score": score, "label": "Alta prioridade", "css": "alta"}
+    if score >= PRIORITY_THRESHOLDS["media"]:
+        return {"score": score, "label": "Media prioridade", "css": "media"}
+    return {"score": score, "label": "Baixa prioridade", "css": "baixa"}
+
+
+def salvar_foto_chamado(foto) -> str:
+    if foto and foto.filename and not imagem_permitida(foto.filename):
+        return ""
+    return salvar_upload_imagem(foto, current_app.config["CALL_UPLOAD_SUBDIR"])
+
+
 def serialize_comment(row: Mapping[str, Any]) -> dict:
     autor_exibicao = (row["autor_nome"] or "").strip() or "morador.local"
     return {
         "id": row["id"],
+        "autor_user_id": mapping_get(row, "id_usuario"),
         "autor_exibicao": autor_exibicao,
         "texto": row["texto"],
         "tempo_relativo": tempo_relativo(row["criado_em"]),
@@ -87,6 +129,9 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
     )
     upvotes_count = int(mapping_get(vote_info, "total", 0) or 0)
     has_upvoted = bool(mapping_get(vote_info, "has_upvoted", 0))
+    coordinates_available = row["latitude"] is not None and row["longitude"] is not None
+    prioridade = calcular_prioridade(row["status"], upvotes_count, len(comments), row["criado_em"], coordinates_available)
+    foto_chamado = (mapping_get(row, "foto_chamado", "") or "").strip()
     return {
         "id": row["id"],
         "owner_user_id": mapping_get(row, "id_usuario"),
@@ -105,6 +150,8 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
         "regiao": row["regiao"] or "",
         "numero": row["numero"] or "",
         "descricao": row["descricao"],
+        "foto_chamado": foto_chamado,
+        "foto_chamado_url": avatar_payload("foto", foto_chamado)["avatar_url"] if foto_chamado else "",
         "status": row["status"],
         "status_label": STATUS_LABELS.get(row["status"], row["status"]),
         "status_css": row["status"].lower(),
@@ -114,13 +161,16 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
         "tempo_relativo": tempo_relativo(row["criado_em"]),
         "endereco_completo": endereco,
         "localizacao_resumida": localizacao_resumida,
-        "coordinates_available": row["latitude"] is not None and row["longitude"] is not None,
+        "coordinates_available": coordinates_available,
         "comentarios": comments,
         "comentarios_count": len(comments),
         "comentarios_label": pluralizar_comentario(len(comments)),
         "upvotes_count": upvotes_count,
         "upvotes_label": pluralizar_apoio(upvotes_count),
         "has_upvoted": has_upvoted,
+        "priority_score": prioridade["score"],
+        "priority_label": prioridade["label"],
+        "priority_css": prioridade["css"],
         **avatar_payload(autor_exibicao, mapping_get(row, "foto_perfil", "")),
     }
 
@@ -153,7 +203,7 @@ def normalizar_formulario(form, user=None) -> dict:
     return data
 
 
-def validar_chamado(data: dict) -> dict:
+def validar_chamado(data: dict, foto=None) -> dict:
     errors = {}
 
     if not cpf_valido(data["cpf"]):
@@ -168,6 +218,8 @@ def validar_chamado(data: dict) -> dict:
         errors["cep"] = "Informe um CEP com 8 digitos."
     if data["email"] and "@" not in data["email"]:
         errors["email"] = "Informe um e-mail valido."
+    if foto and foto.filename and not imagem_permitida(foto.filename):
+        errors["foto_chamado"] = "Envie uma imagem PNG, JPG, JPEG, WEBP ou GIF para a denuncia."
 
     return errors
 
@@ -301,9 +353,9 @@ def salvar_chamado(data: dict, user):
             """
             INSERT INTO denuncias (
                 id_usuario, id_endereco, cpf, nome_usuario, email_usuario, categoria,
-                data_denuncia, descricao, status, latitude, longitude, atualizado_em
+                data_denuncia, descricao, foto_chamado, status, latitude, longitude, atualizado_em
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user["id_usuario"],
@@ -314,6 +366,7 @@ def salvar_chamado(data: dict, user):
                 data["categoria"],
                 agora,
                 data["descricao"],
+                data.get("foto_chamado", ""),
                 "PROBLEMA",
                 float(data["latitude"]) if data.get("latitude") is not None else None,
                 float(data["longitude"]) if data.get("longitude") is not None else None,
@@ -325,9 +378,9 @@ def salvar_chamado(data: dict, user):
             """
             INSERT INTO chamados (
                 id_usuario, cpf, nome, email, categoria, cep, rua, bairro, cidade, estado, pais, regiao, numero,
-                descricao, status, latitude, longitude, criado_em, atualizado_em
+                descricao, foto_chamado, status, latitude, longitude, criado_em, atualizado_em
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user["id_usuario"],
@@ -344,6 +397,7 @@ def salvar_chamado(data: dict, user):
                 data["regiao"],
                 data["numero"],
                 data["descricao"],
+                data.get("foto_chamado", ""),
                 "PROBLEMA",
                 float(data["latitude"]) if data.get("latitude") is not None else None,
                 float(data["longitude"]) if data.get("longitude") is not None else None,
@@ -356,6 +410,7 @@ def salvar_chamado(data: dict, user):
 
 def atualizar_status_chamado(pk: int, status: str):
     db = get_db()
+    owner_user_id = buscar_dono_chamado(pk)
     if mysql_enabled():
         db.execute(
             "UPDATE denuncias SET status = ?, atualizado_em = ? WHERE id_denuncia = ?",
@@ -364,6 +419,7 @@ def atualizar_status_chamado(pk: int, status: str):
     else:
         db.execute("UPDATE chamados SET status = ?, atualizado_em = ? WHERE id = ?", (status, agora_iso(), pk))
     db.commit()
+    return owner_user_id
 
 
 def usuario_pode_atualizar_status(pk: int, user) -> bool:
@@ -385,6 +441,7 @@ def usuario_pode_atualizar_status(pk: int, user) -> bool:
 
 def adicionar_comentario(pk: int, texto: str, user):
     db = get_db()
+    owner_user_id = buscar_dono_chamado(pk)
     if mysql_enabled():
         db.execute(
             """
@@ -402,6 +459,29 @@ def adicionar_comentario(pk: int, texto: str, user):
             (user["id_usuario"], pk, user["nome"], texto, agora_iso()),
         )
     db.commit()
+    if owner_user_id and owner_user_id != user["id_usuario"]:
+        criar_notificacao(
+            destinatario_usuario_id=owner_user_id,
+            ator_usuario_id=user["id_usuario"],
+            chamado_id=pk,
+            tipo="comentario",
+            titulo="Novo comentario no seu chamado",
+            mensagem=f'{user["nome"]} comentou na sua denuncia.',
+        )
+
+
+def buscar_dono_chamado(pk: int) -> int | None:
+    db = get_db()
+    if mysql_enabled():
+        row = db.execute("SELECT id_usuario FROM denuncias WHERE id_denuncia = ?", (pk,)).fetchone()
+    else:
+        row = db.execute("SELECT id_usuario FROM chamados WHERE id = ?", (pk,)).fetchone()
+    return mapping_get(row, "id_usuario")
+
+
+def buscar_chamado_por_id(pk: int, viewer_user_id: int | None = None) -> dict | None:
+    chamados = listar_chamados(viewer_user_id=viewer_user_id)
+    return next((chamado for chamado in chamados if chamado["id"] == pk), None)
 
 
 def buscar_resumo_upvotes(viewer_user_id: int | None = None) -> dict[int, dict]:
@@ -456,6 +536,7 @@ def alternar_upvote(pk: int, user) -> bool | None:
         return None
 
     db = get_db()
+    owner_user_id = buscar_dono_chamado(pk)
     params = (user_id, pk)
     if mysql_enabled():
         existing = db.execute(
@@ -493,6 +574,15 @@ def alternar_upvote(pk: int, user) -> bool | None:
         )
 
     db.commit()
+    if owner_user_id and owner_user_id != user_id:
+        criar_notificacao(
+            destinatario_usuario_id=owner_user_id,
+            ator_usuario_id=user_id,
+            chamado_id=pk,
+            tipo="apoio",
+            titulo="Seu chamado recebeu apoio",
+            mensagem=f'{user["nome"]} apoiou sua denuncia.',
+        )
     return True
 
 
@@ -518,6 +608,7 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
                 e.regiao,
                 e.numero,
                 d.descricao,
+                d.foto_chamado,
                 d.status,
                 d.latitude,
                 d.longitude,
@@ -534,6 +625,7 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
             SELECT
                 c.id_comentario AS id,
                 c.id_denuncia AS chamado_id,
+                c.id_usuario,
                 COALESCE(u.nome, c.nome_usuario) AS autor_nome,
                 c.comentario AS texto,
                 c.criado_em,
@@ -559,6 +651,7 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
             SELECT
                 cm.id,
                 cm.chamado_id,
+                cm.id_usuario,
                 COALESCE(u.nome, cm.autor_nome) AS autor_nome,
                 cm.texto,
                 cm.criado_em,
@@ -580,9 +673,208 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
     ]
 
     if sort_mode == "social":
-        chamados.sort(key=lambda chamado: (chamado["upvotes_count"], chamado["comentarios_count"], chamado["id"]), reverse=True)
+        chamados.sort(
+            key=lambda chamado: (
+                chamado["priority_score"],
+                chamado["upvotes_count"],
+                chamado["comentarios_count"],
+                chamado["id"],
+            ),
+            reverse=True,
+        )
 
     return chamados
+
+
+def listar_comentarios_usuario(user_id: int, limit: int = 8) -> list[dict]:
+    db = get_db()
+    params = (user_id, limit)
+    if mysql_enabled():
+        rows = db.execute(
+            """
+            SELECT
+                c.id_comentario AS id,
+                c.id_denuncia AS chamado_id,
+                c.id_usuario,
+                COALESCE(u.nome, c.nome_usuario) AS autor_nome,
+                c.comentario AS texto,
+                c.criado_em,
+                u.foto_perfil AS autor_foto
+            FROM comentarios c
+            LEFT JOIN usuarios u ON u.id_usuario = c.id_usuario
+            WHERE c.id_usuario = ?
+            ORDER BY c.criado_em DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    else:
+        rows = db.execute(
+            """
+            SELECT
+                cm.id,
+                cm.chamado_id,
+                cm.id_usuario,
+                COALESCE(u.nome, cm.autor_nome) AS autor_nome,
+                cm.texto,
+                cm.criado_em,
+                u.foto_perfil AS autor_foto
+            FROM comentarios cm
+            LEFT JOIN usuarios u ON u.id_usuario = cm.id_usuario
+            WHERE cm.id_usuario = ?
+            ORDER BY cm.criado_em DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    return [serialize_comment(row) for row in rows]
+
+
+def obter_perfil_publico(user_id: int, viewer_user_id: int | None = None) -> dict | None:
+    user = buscar_usuario_por_id(user_id)
+    if not user:
+        return None
+
+    db = get_db()
+    total_comentarios_row = db.execute("SELECT COUNT(*) AS total FROM comentarios WHERE id_usuario = ?", (user_id,)).fetchone()
+    chamados = [chamado for chamado in listar_chamados(viewer_user_id=viewer_user_id, sort_mode="social") if chamado["owner_user_id"] == user_id]
+    comentarios = listar_comentarios_usuario(user_id)
+    return {
+        "id_usuario": user["id_usuario"],
+        "nome": user["nome"],
+        "email": user["email"],
+        "foto_perfil": user["foto_perfil"],
+        **avatar_payload(user["nome"], mapping_get(user, "foto_perfil", "")),
+        "is_admin": bool(mapping_get(user, "is_admin", 0)),
+        "chamados": chamados[:6],
+        "comentarios": comentarios,
+        "total_chamados": len(chamados),
+        "total_comentarios": int(total_comentarios_row["total"] or 0) if total_comentarios_row else 0,
+        "total_apoios_recebidos": sum(chamado["upvotes_count"] for chamado in chamados),
+        "prioridades_altas": sum(1 for chamado in chamados if chamado["priority_css"] == "alta"),
+    }
+
+
+def listar_comentarios_recentes(limit: int = 12) -> list[dict]:
+    db = get_db()
+    params = (limit,)
+    if mysql_enabled():
+        rows = db.execute(
+            """
+            SELECT
+                c.id_comentario AS id,
+                c.id_denuncia AS chamado_id,
+                c.id_usuario,
+                COALESCE(u.nome, c.nome_usuario) AS autor_nome,
+                c.comentario AS texto,
+                c.criado_em,
+                u.foto_perfil AS autor_foto
+            FROM comentarios c
+            LEFT JOIN usuarios u ON u.id_usuario = c.id_usuario
+            ORDER BY c.criado_em DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    else:
+        rows = db.execute(
+            """
+            SELECT
+                cm.id,
+                cm.chamado_id,
+                cm.id_usuario,
+                COALESCE(u.nome, cm.autor_nome) AS autor_nome,
+                cm.texto,
+                cm.criado_em,
+                u.foto_perfil AS autor_foto
+            FROM comentarios cm
+            LEFT JOIN usuarios u ON u.id_usuario = cm.id_usuario
+            ORDER BY cm.criado_em DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    return [serialize_comment(row) | {"chamado_id": row["chamado_id"]} for row in rows]
+
+
+def remover_comentario(comment_id: int):
+    db = get_db()
+    if mysql_enabled():
+        db.execute("DELETE FROM comentarios WHERE id_comentario = ?", (comment_id,))
+    else:
+        db.execute("DELETE FROM comentarios WHERE id = ?", (comment_id,))
+    db.commit()
+
+
+def listar_usuarios_mais_ativos(limit: int = 6) -> list[dict]:
+    db = get_db()
+    params = (limit,)
+    if mysql_enabled():
+        rows = db.execute(
+            """
+            SELECT
+                u.id_usuario,
+                u.nome,
+                u.email,
+                u.foto_perfil,
+                COUNT(DISTINCT d.id_denuncia) AS total_chamados,
+                COUNT(DISTINCT c.id_comentario) AS total_comentarios
+            FROM usuarios u
+            LEFT JOIN denuncias d ON d.id_usuario = u.id_usuario
+            LEFT JOIN comentarios c ON c.id_usuario = u.id_usuario
+            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil
+            ORDER BY (COUNT(DISTINCT d.id_denuncia) * 3 + COUNT(DISTINCT c.id_comentario)) DESC, u.nome ASC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    else:
+        rows = db.execute(
+            """
+            SELECT
+                u.id_usuario,
+                u.nome,
+                u.email,
+                u.foto_perfil,
+                COUNT(DISTINCT ch.id) AS total_chamados,
+                COUNT(DISTINCT cm.id) AS total_comentarios
+            FROM usuarios u
+            LEFT JOIN chamados ch ON ch.id_usuario = u.id_usuario
+            LEFT JOIN comentarios cm ON cm.id_usuario = u.id_usuario
+            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil
+            ORDER BY (COUNT(DISTINCT ch.id) * 3 + COUNT(DISTINCT cm.id)) DESC, u.nome ASC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+    return [
+        {
+            "id_usuario": row["id_usuario"],
+            "nome": row["nome"],
+            "email": row["email"],
+            "total_chamados": int(row["total_chamados"] or 0),
+            "total_comentarios": int(row["total_comentarios"] or 0),
+            **avatar_payload(row["nome"], mapping_get(row, "foto_perfil", "")),
+        }
+        for row in rows
+    ]
+
+
+def montar_dashboard_admin() -> dict:
+    chamados = listar_chamados(sort_mode="social")
+    db = get_db()
+    total_usuarios_row = db.execute("SELECT COUNT(*) AS total FROM usuarios").fetchone()
+    return {
+        "stats": {
+            "usuarios": int(total_usuarios_row["total"] or 0) if total_usuarios_row else 0,
+            "chamados": len(chamados),
+            "prioridade_alta": sum(1 for chamado in chamados if chamado["priority_css"] == "alta"),
+            "com_foto": sum(1 for chamado in chamados if chamado["foto_chamado"]),
+        },
+        "chamados_prioritarios": chamados[:8],
+        "comentarios_recentes": listar_comentarios_recentes(),
+        "usuarios_ativos": listar_usuarios_mais_ativos(),
+    }
 
 
 def calcular_stats(chamados: list[dict]) -> dict:
