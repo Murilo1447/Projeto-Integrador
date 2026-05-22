@@ -6,6 +6,7 @@ from .auth import inject_user, load_logged_in_user
 from .config import default_app_config
 from .db import close_db
 from .views.auth_views import cadastro, login, logout
+from .views.media_views import foto_perfil_usuario
 from .views.main_views import (
     adicionar_comentario_view,
     alternar_upvote_view,
@@ -46,6 +47,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     app.add_url_rule("/", view_func=home, endpoint="home")
     app.add_url_rule("/mapa/", view_func=mapa_ao_vivo, endpoint="mapa_ao_vivo")
+    app.add_url_rule("/media/perfis/<int:user_id>/", view_func=foto_perfil_usuario, endpoint="foto_perfil_usuario")
     app.add_url_rule("/usuarios/<int:user_id>/", view_func=perfil_publico, endpoint="perfil_publico")
     app.add_url_rule("/admin/", view_func=dashboard_admin, endpoint="dashboard_admin")
     app.add_url_rule("/login/", view_func=login, methods=["GET", "POST"], endpoint="login")

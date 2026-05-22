@@ -4,7 +4,7 @@ from flask import current_app
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..db import get_db, mysql_enabled, mysql_insert_id
-from ..utils import agora_iso, cpf_valido, imagem_permitida, salvar_upload_imagem, telefone_valido
+from ..utils import agora_iso, cpf_valido, imagem_permitida, ler_upload_imagem_blob, telefone_valido
 
 
 def cadastro_defaults() -> dict:
@@ -30,7 +30,11 @@ def buscar_usuario_por_id(user_id: int | None):
     if not user_id:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE id_usuario = ?"
+    query = """
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        FROM usuarios
+        WHERE id_usuario = ?
+    """
     return get_db().execute(query, (user_id,)).fetchone()
 
 
@@ -38,7 +42,11 @@ def buscar_usuario_por_email(email: str):
     if not email:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE email = ?"
+    query = """
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        FROM usuarios
+        WHERE email = ?
+    """
     return get_db().execute(query, (email,)).fetchone()
 
 
@@ -46,7 +54,11 @@ def buscar_usuario_por_cpf(cpf: str):
     if not cpf:
         return None
 
-    query = "SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil FROM usuarios WHERE cpf = ?"
+    query = """
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        FROM usuarios
+        WHERE cpf = ?
+    """
     return get_db().execute(query, (cpf,)).fetchone()
 
 
@@ -80,16 +92,16 @@ def validar_cadastro(data: dict, foto) -> dict:
     return errors
 
 
-def salvar_foto_perfil(foto) -> str:
-    return salvar_upload_imagem(foto, current_app.config["PROFILE_UPLOAD_SUBDIR"])
+def salvar_foto_perfil(foto) -> tuple[bytes | None, str]:
+    return ler_upload_imagem_blob(foto)
 
 
-def criar_usuario(data: dict, foto_path: str) -> int:
+def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
     db = get_db()
     cursor = db.execute(
         """
-        INSERT INTO usuarios (nome, email, senha, telefone, cpf, foto_perfil, criado_em)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO usuarios (nome, email, senha, telefone, cpf, foto_perfil, foto_perfil_blob, foto_perfil_mime, criado_em)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             data["nome"],
@@ -97,7 +109,9 @@ def criar_usuario(data: dict, foto_path: str) -> int:
             generate_password_hash(data["senha"]),
             data["telefone"],
             data["cpf"],
-            foto_path,
+            "",
+            foto_blob,
+            foto_mime,
             agora_iso(),
         ),
     )

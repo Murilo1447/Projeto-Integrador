@@ -40,6 +40,8 @@ SQLITE_SCHEMA_STATEMENTS = [
         cpf TEXT NOT NULL UNIQUE,
         is_admin INTEGER NOT NULL DEFAULT 0,
         foto_perfil TEXT DEFAULT '',
+        foto_perfil_blob BLOB,
+        foto_perfil_mime TEXT DEFAULT '',
         criado_em TEXT NOT NULL
     )
     """,
@@ -121,6 +123,8 @@ MYSQL_SCHEMA_STATEMENTS = [
         cpf VARCHAR(14) NOT NULL,
         is_admin TINYINT(1) NOT NULL DEFAULT 0,
         foto_perfil VARCHAR(255) DEFAULT '',
+        foto_perfil_blob LONGBLOB,
+        foto_perfil_mime VARCHAR(120) DEFAULT '',
         criado_em VARCHAR(40) NOT NULL,
         CONSTRAINT uq_usuarios_email UNIQUE (email),
         CONSTRAINT uq_usuarios_cpf UNIQUE (cpf)

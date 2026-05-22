@@ -80,6 +80,29 @@ def imagem_permitida(filename: str) -> bool:
     return image_extension(filename) in ALLOWED_IMAGE_EXTENSIONS
 
 
+def image_mime_type(filename: str) -> str:
+    extensao = image_extension(filename)
+    return {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "webp": "image/webp",
+        "gif": "image/gif",
+    }.get(extensao, "application/octet-stream")
+
+
+def ler_upload_imagem_blob(arquivo) -> tuple[bytes, str] | tuple[None, str]:
+    if not arquivo or not arquivo.filename:
+        return None, ""
+
+    arquivo.stream.seek(0)
+    content = arquivo.read()
+    arquivo.stream.seek(0)
+    if not content:
+        return None, ""
+    return content, image_mime_type(arquivo.filename)
+
+
 def salvar_upload_imagem(arquivo, upload_subdir: str) -> str:
     if not arquivo or not arquivo.filename:
         return ""
@@ -97,10 +120,15 @@ def salvar_upload_imagem(arquivo, upload_subdir: str) -> str:
     return relative_path.as_posix()
 
 
-def avatar_payload(nome: str, foto_perfil: str) -> dict:
+def avatar_payload(nome: str, foto_perfil: str, user_id: int | None = None, has_blob: bool = False) -> dict:
     relative_path = (foto_perfil or "").strip().replace("\\", "/")
+    avatar_url = ""
+    if has_blob and user_id:
+        avatar_url = url_for("foto_perfil_usuario", user_id=user_id)
+    elif relative_path:
+        avatar_url = url_for("static", filename=relative_path)
     return {
-        "avatar_url": url_for("static", filename=relative_path) if relative_path else "",
+        "avatar_url": avatar_url,
         "avatar_iniciais": avatar_iniciais(nome),
     }
 

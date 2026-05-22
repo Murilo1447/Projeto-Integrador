@@ -109,7 +109,12 @@ def serialize_comment(row: Mapping[str, Any]) -> dict:
         "autor_exibicao": autor_exibicao,
         "texto": row["texto"],
         "tempo_relativo": tempo_relativo(row["criado_em"]),
-        **avatar_payload(autor_exibicao, mapping_get(row, "autor_foto", "")),
+        **avatar_payload(
+            autor_exibicao,
+            mapping_get(row, "autor_foto", ""),
+            user_id=mapping_get(row, "id_usuario"),
+            has_blob=bool(mapping_get(row, "autor_foto_blob")),
+        ),
     }
 
 
@@ -171,7 +176,12 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
         "priority_score": prioridade["score"],
         "priority_label": prioridade["label"],
         "priority_css": prioridade["css"],
-        **avatar_payload(autor_exibicao, mapping_get(row, "foto_perfil", "")),
+        **avatar_payload(
+            autor_exibicao,
+            mapping_get(row, "foto_perfil", ""),
+            user_id=mapping_get(row, "id_usuario"),
+            has_blob=bool(mapping_get(row, "foto_perfil_blob")),
+        ),
     }
 
 
@@ -598,6 +608,8 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
                 COALESCE(u.nome, d.nome_usuario) AS nome,
                 COALESCE(u.email, d.email_usuario) AS email,
                 u.foto_perfil,
+                u.foto_perfil_blob,
+                u.foto_perfil_mime,
                 d.categoria,
                 e.cep,
                 e.nome_rua AS rua,
@@ -640,7 +652,9 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
             """
             SELECT
                 c.*,
-                u.foto_perfil
+                u.foto_perfil,
+                u.foto_perfil_blob,
+                u.foto_perfil_mime
             FROM chamados c
             LEFT JOIN usuarios u ON u.id_usuario = c.id_usuario
             ORDER BY c.criado_em DESC
@@ -699,7 +713,9 @@ def listar_comentarios_usuario(user_id: int, limit: int = 8) -> list[dict]:
                 COALESCE(u.nome, c.nome_usuario) AS autor_nome,
                 c.comentario AS texto,
                 c.criado_em,
-                u.foto_perfil AS autor_foto
+                u.foto_perfil AS autor_foto,
+                u.foto_perfil_blob AS autor_foto_blob,
+                u.foto_perfil_mime AS autor_foto_mime
             FROM comentarios c
             LEFT JOIN usuarios u ON u.id_usuario = c.id_usuario
             WHERE c.id_usuario = ?
@@ -718,7 +734,9 @@ def listar_comentarios_usuario(user_id: int, limit: int = 8) -> list[dict]:
                 COALESCE(u.nome, cm.autor_nome) AS autor_nome,
                 cm.texto,
                 cm.criado_em,
-                u.foto_perfil AS autor_foto
+                u.foto_perfil AS autor_foto,
+                u.foto_perfil_blob AS autor_foto_blob,
+                u.foto_perfil_mime AS autor_foto_mime
             FROM comentarios cm
             LEFT JOIN usuarios u ON u.id_usuario = cm.id_usuario
             WHERE cm.id_usuario = ?
@@ -744,7 +762,12 @@ def obter_perfil_publico(user_id: int, viewer_user_id: int | None = None) -> dic
         "nome": user["nome"],
         "email": user["email"],
         "foto_perfil": user["foto_perfil"],
-        **avatar_payload(user["nome"], mapping_get(user, "foto_perfil", "")),
+        **avatar_payload(
+            user["nome"],
+            mapping_get(user, "foto_perfil", ""),
+            user_id=user["id_usuario"],
+            has_blob=bool(mapping_get(user, "foto_perfil_blob")),
+        ),
         "is_admin": bool(mapping_get(user, "is_admin", 0)),
         "chamados": chamados[:6],
         "comentarios": comentarios,
@@ -768,7 +791,9 @@ def listar_comentarios_recentes(limit: int = 12) -> list[dict]:
                 COALESCE(u.nome, c.nome_usuario) AS autor_nome,
                 c.comentario AS texto,
                 c.criado_em,
-                u.foto_perfil AS autor_foto
+                u.foto_perfil AS autor_foto,
+                u.foto_perfil_blob AS autor_foto_blob,
+                u.foto_perfil_mime AS autor_foto_mime
             FROM comentarios c
             LEFT JOIN usuarios u ON u.id_usuario = c.id_usuario
             ORDER BY c.criado_em DESC
@@ -786,7 +811,9 @@ def listar_comentarios_recentes(limit: int = 12) -> list[dict]:
                 COALESCE(u.nome, cm.autor_nome) AS autor_nome,
                 cm.texto,
                 cm.criado_em,
-                u.foto_perfil AS autor_foto
+                u.foto_perfil AS autor_foto,
+                u.foto_perfil_blob AS autor_foto_blob,
+                u.foto_perfil_mime AS autor_foto_mime
             FROM comentarios cm
             LEFT JOIN usuarios u ON u.id_usuario = cm.id_usuario
             ORDER BY cm.criado_em DESC
@@ -817,12 +844,14 @@ def listar_usuarios_mais_ativos(limit: int = 6) -> list[dict]:
                 u.nome,
                 u.email,
                 u.foto_perfil,
+                u.foto_perfil_blob,
+                u.foto_perfil_mime,
                 COUNT(DISTINCT d.id_denuncia) AS total_chamados,
                 COUNT(DISTINCT c.id_comentario) AS total_comentarios
             FROM usuarios u
             LEFT JOIN denuncias d ON d.id_usuario = u.id_usuario
             LEFT JOIN comentarios c ON c.id_usuario = u.id_usuario
-            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil
+            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil, u.foto_perfil_blob, u.foto_perfil_mime
             ORDER BY (COUNT(DISTINCT d.id_denuncia) * 3 + COUNT(DISTINCT c.id_comentario)) DESC, u.nome ASC
             LIMIT ?
             """,
@@ -836,12 +865,14 @@ def listar_usuarios_mais_ativos(limit: int = 6) -> list[dict]:
                 u.nome,
                 u.email,
                 u.foto_perfil,
+                u.foto_perfil_blob,
+                u.foto_perfil_mime,
                 COUNT(DISTINCT ch.id) AS total_chamados,
                 COUNT(DISTINCT cm.id) AS total_comentarios
             FROM usuarios u
             LEFT JOIN chamados ch ON ch.id_usuario = u.id_usuario
             LEFT JOIN comentarios cm ON cm.id_usuario = u.id_usuario
-            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil
+            GROUP BY u.id_usuario, u.nome, u.email, u.foto_perfil, u.foto_perfil_blob, u.foto_perfil_mime
             ORDER BY (COUNT(DISTINCT ch.id) * 3 + COUNT(DISTINCT cm.id)) DESC, u.nome ASC
             LIMIT ?
             """,
@@ -854,7 +885,12 @@ def listar_usuarios_mais_ativos(limit: int = 6) -> list[dict]:
             "email": row["email"],
             "total_chamados": int(row["total_chamados"] or 0),
             "total_comentarios": int(row["total_comentarios"] or 0),
-            **avatar_payload(row["nome"], mapping_get(row, "foto_perfil", "")),
+            **avatar_payload(
+                row["nome"],
+                mapping_get(row, "foto_perfil", ""),
+                user_id=row["id_usuario"],
+                has_blob=bool(mapping_get(row, "foto_perfil_blob")),
+            ),
         }
         for row in rows
     ]

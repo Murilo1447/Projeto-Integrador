@@ -128,7 +128,11 @@ class FixCityFlaskTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Comentario adicionado.", response.data)
         self.assertIn(b"Maria da Silva", response.data)
-        self.assertIn(b"uploads/profiles/", response.data)
+        self.assertIn(b"/media/perfis/1/", response.data)
+        with self.app.app_context():
+            usuario = buscar_usuario_por_email("maria@example.com")
+            self.assertTrue(usuario["foto_perfil_blob"])
+            self.assertEqual(usuario["foto_perfil_mime"], "image/png")
 
     def test_feed_social_exibe_mini_mapa_e_permite_upvote(self):
         self.cadastrar_usuario()
@@ -219,12 +223,13 @@ class FixCityFlaskTests(unittest.TestCase):
         self.assertEqual(status_final, "RESOLVIDO")
 
     def test_denuncia_com_foto_perfil_publico_e_heatmap_aparecem(self):
-        self.cadastrar_usuario()
+        self.cadastrar_usuario(com_foto=True)
         response = self.criar_chamado_autenticado(coords=(-23.55052, -46.633308), com_foto=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"uploads/calls/", response.data)
         self.assertIn(b"Baixa prioridade", response.data)
+        self.assertIn(b"/media/perfis/1/", response.data)
 
         perfil_response = self.client.get("/usuarios/1/")
         self.assertEqual(perfil_response.status_code, 200)

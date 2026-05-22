@@ -111,6 +111,8 @@ def ensure_schema_compatibility(db: DatabaseConnection):
                 "cpf": "ALTER TABLE usuarios ADD COLUMN cpf TEXT DEFAULT ''",
                 "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
                 "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT DEFAULT ''",
+                "foto_perfil_blob": "ALTER TABLE usuarios ADD COLUMN foto_perfil_blob BLOB",
+                "foto_perfil_mime": "ALTER TABLE usuarios ADD COLUMN foto_perfil_mime TEXT DEFAULT ''",
                 "criado_em": "ALTER TABLE usuarios ADD COLUMN criado_em TEXT DEFAULT ''",
             },
             "chamados": {
@@ -136,6 +138,8 @@ def ensure_schema_compatibility(db: DatabaseConnection):
         "usuarios": {
             "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0",
             "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR(255) DEFAULT ''",
+            "foto_perfil_blob": "ALTER TABLE usuarios ADD COLUMN foto_perfil_blob LONGBLOB",
+            "foto_perfil_mime": "ALTER TABLE usuarios ADD COLUMN foto_perfil_mime VARCHAR(120) DEFAULT ''",
             "criado_em": "ALTER TABLE usuarios ADD COLUMN criado_em VARCHAR(40) NOT NULL DEFAULT ''",
         },
         "endereco": {

@@ -4,12 +4,23 @@ from flask import flash, g, redirect, request, session, url_for
 
 from .services.auth_service import buscar_usuario_por_id
 from .services.notification_service import contar_notificacoes_nao_lidas, listar_notificacoes_usuario
-from .utils import login_redirect_target, user_is_admin
+from .utils import avatar_payload, login_redirect_target, mapping_get, user_is_admin
 
 
 def load_logged_in_user():
     user_id = session.get("user_id")
-    g.user = buscar_usuario_por_id(user_id) if user_id else None
+    user = buscar_usuario_por_id(user_id) if user_id else None
+    if user:
+        user = dict(user)
+        user.update(
+            avatar_payload(
+                user["nome"],
+                mapping_get(user, "foto_perfil", ""),
+                user_id=user["id_usuario"],
+                has_blob=bool(mapping_get(user, "foto_perfil_blob")),
+            )
+        )
+    g.user = user
 
 
 def inject_user():

@@ -43,8 +43,8 @@ def cadastro():
         errors = validar_cadastro(form_data, foto)
 
         if not errors:
-            foto_path = salvar_foto_perfil(foto)
-            usuario_id = criar_usuario(form_data, foto_path)
+            foto_blob, foto_mime = salvar_foto_perfil(foto)
+            usuario_id = criar_usuario(form_data, foto_blob, foto_mime)
             session.clear()
             session["user_id"] = usuario_id
             flash("Conta criada com sucesso. Voce ja esta logado.", "success")
