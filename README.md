@@ -1,6 +1,38 @@
 # FixCity
 
-O projeto continua funcionando com `SQLite` por padrao, mas agora tambem aceita `MySQL`, o que permite administrar o banco pelo MySQL Workbench.
+O projeto foi reorganizado em arquitetura MVC com Flask, mantendo as funcionalidades de cadastro, login, denuncias, comentarios, upvotes, notificacoes, mapa e painel administrativo.
+
+## Estrutura MVC
+
+```text
+fixcity/
+├── controllers/   # Fluxo HTTP, rotas e respostas Flask
+├── models/        # Regras de negocio e acesso aos dados
+├── services/      # Integracoes externas e compatibilidade
+├── auth.py        # Decorators e injecao do usuario logado
+├── config.py      # Configuracoes e schema
+├── db.py          # Conexao e inicializacao do banco
+└── factory.py     # App factory
+
+templates/fixcity/ # Views HTML
+static/            # CSS, JS e uploads
+app.py             # Ponto de entrada da aplicacao
+```
+
+## Como ficou separado
+
+- `controllers`: recebem `request`, validam fluxo e renderizam templates ou redirecionam.
+- `models`: concentram persistencia, serializacao e regras de negocio dos usuarios, chamados e notificacoes.
+- `views`: no Flask ficam nos templates Jinja em `templates/fixcity`.
+- `services`: lidam com CEP e geocodificacao, sem misturar isso com controller ou model.
+
+## Executar com SQLite
+
+1. Ative o ambiente virtual.
+2. Instale as dependencias com `pip install -r requirements.txt`.
+3. Rode a aplicacao com `python app.py`.
+
+O SQLite continua sendo o backend padrao.
 
 ## Como conectar com MySQL Workbench
 
@@ -17,17 +49,12 @@ $env:FIXCITY_MYSQL_PASSWORD = "felipe123"
 $env:FIXCITY_MYSQL_DATABASE = "FixcityDB"
 ```
 
-4. Rode a aplicacao normalmente. No MySQL, o projeto agora usa as tabelas `usuarios`, `endereco`, `denuncias` e `comentarios`.
+4. Rode a aplicacao normalmente.
 
-## O que foi adaptado no script
+## Testes
 
-O arquivo SQL foi ajustado para encaixar no projeto atual:
+Execute:
 
-- `id_usuario` e `id_endereco` agora usam `INT`, para combinar com as chaves primarias.
-- A ordem de criacao das tabelas foi corrigida para evitar erro de chave estrangeira.
-- As denuncias agora guardam os campos que o app realmente usa hoje, como `cpf`, `categoria`, `email_usuario`, `latitude` e `longitude`.
-- Os comentarios ficaram ligados a `denuncias`, mas `id_usuario` continua opcional porque o login/cadastro ainda nao foi migrado para o backend.
-
-## Voltar para SQLite
-
-Se quiser usar o banco local em arquivo novamente, basta remover `FIXCITY_DB_BACKEND` ou defini-la como `sqlite`.
+```powershell
+.\venv\Scripts\python.exe -m unittest tests_flask.py
+```

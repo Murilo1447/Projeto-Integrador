@@ -2,8 +2,8 @@ from functools import wraps
 
 from flask import flash, g, redirect, request, session, url_for
 
-from .services.auth_service import buscar_usuario_por_id
-from .services.notification_service import contar_notificacoes_nao_lidas, listar_notificacoes_usuario
+from .models.notification_model import contar_notificacoes_nao_lidas, listar_notificacoes_usuario
+from .models.user_model import buscar_usuario_por_id
 from .utils import avatar_payload, login_redirect_target, mapping_get, user_is_admin
 
 

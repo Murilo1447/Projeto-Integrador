@@ -1,18 +1,19 @@
-from flask import flash, render_template, request, redirect, url_for
+from flask import flash, redirect, render_template, request, url_for
 
 from ..auth import admin_required, login_required
 from ..config import CATEGORIAS, STATUS_CHOICES, STATUS_LABELS
-from ..services.chamado_service import (
+from ..models.call_model import (
+    LOCATION_FILTER_CHOICES,
     adicionar_comentario,
     alternar_upvote,
-    buscar_chamado_por_id,
+    atualizar_status_chamado,
+    build_map_data,
     calcular_stats,
     construir_filtro_localizacao,
     filtrar_chamados_por_localizacao,
     form_defaults,
-    LOCATION_FILTER_CHOICES,
-    listar_comentarios_recentes,
     listar_chamados,
+    listar_comentarios_recentes,
     montar_dashboard_admin,
     normalizar_formulario,
     obter_perfil_publico,
@@ -20,11 +21,10 @@ from ..services.chamado_service import (
     remover_comentario,
     salvar_chamado,
     salvar_foto_chamado,
-    atualizar_status_chamado,
     usuario_pode_atualizar_status,
     validar_chamado,
 )
-from ..services.notification_service import criar_notificacao, marcar_notificacoes_como_lidas
+from ..models.notification_model import criar_notificacao, marcar_notificacoes_como_lidas
 from ..utils import current_user, normalize_next_url
 
 
@@ -44,47 +44,6 @@ def args_redirecionamento_feed(source) -> dict:
         args["campo_localizacao"] = filtro["campo"]
         args["busca_localizacao"] = filtro["busca"]
     return args
-
-
-def build_map_data(chamados: list[dict]) -> list[dict]:
-    return [
-        {
-            "id": chamado["id"],
-            "owner_user_id": chamado["owner_user_id"],
-            "autor": chamado["autor_exibicao"],
-            "categoria": chamado["categoria_label"],
-            "descricao": chamado["descricao"],
-            "endereco": chamado["endereco_completo"],
-            "status": chamado["status_label"],
-            "status_css": chamado["status_css"],
-            "status_color": chamado["status_color"],
-            "priority_score": chamado["priority_score"],
-            "priority_label": chamado["priority_label"],
-            "priority_css": chamado["priority_css"],
-            "heat_weight": max(0.25, min(chamado["priority_score"] / 24, 1)),
-            "foto_chamado_url": chamado["foto_chamado_url"],
-            "latitude": chamado["latitude"],
-            "longitude": chamado["longitude"],
-            "bairro": chamado["bairro"],
-            "cidade": chamado["cidade"],
-            "estado": chamado["estado"],
-            "pais": chamado["pais"],
-            "regiao": chamado["regiao"],
-            "tempo_relativo": chamado["tempo_relativo"],
-            "upvotes_label": chamado["upvotes_label"],
-            "comentarios_label": chamado["comentarios_label"],
-            "comentarios": [
-                {
-                    "autor": comentario["autor_exibicao"],
-                    "texto": comentario["texto"],
-                    "tempo_relativo": comentario["tempo_relativo"],
-                }
-                for comentario in chamado["comentarios"]
-            ],
-        }
-        for chamado in chamados
-        if chamado["latitude"] is not None and chamado["longitude"] is not None
-    ]
 
 
 def home():
@@ -237,3 +196,41 @@ def excluir_comentario_admin(comment_id: int):
     remover_comentario(comment_id)
     flash("Comentario removido pelo painel administrativo.", "success")
     return redirect(url_for("dashboard_admin"))
+
+
+def register_main_routes(app):
+    app.add_url_rule("/", view_func=home, endpoint="home")
+    app.add_url_rule("/mapa/", view_func=mapa_ao_vivo, endpoint="mapa_ao_vivo")
+    app.add_url_rule("/usuarios/<int:user_id>/", view_func=perfil_publico, endpoint="perfil_publico")
+    app.add_url_rule("/admin/", view_func=dashboard_admin, endpoint="dashboard_admin")
+    app.add_url_rule("/denuncias/", view_func=denuncias, methods=["GET", "POST"], endpoint="denuncias")
+    app.add_url_rule(
+        "/notificacoes/marcar-lidas/",
+        view_func=marcar_notificacoes_lidas_view,
+        methods=["POST"],
+        endpoint="marcar_notificacoes_lidas",
+    )
+    app.add_url_rule(
+        "/denuncias/<int:pk>/status/",
+        view_func=atualizar_status,
+        methods=["POST"],
+        endpoint="atualizar_status",
+    )
+    app.add_url_rule(
+        "/denuncias/<int:pk>/comentarios/",
+        view_func=adicionar_comentario_view,
+        methods=["POST"],
+        endpoint="adicionar_comentario",
+    )
+    app.add_url_rule(
+        "/denuncias/<int:pk>/upvote/",
+        view_func=alternar_upvote_view,
+        methods=["POST"],
+        endpoint="alternar_upvote",
+    )
+    app.add_url_rule(
+        "/admin/comentarios/<int:comment_id>/excluir/",
+        view_func=excluir_comentario_admin,
+        methods=["POST"],
+        endpoint="excluir_comentario_admin",
+    )

@@ -64,8 +64,8 @@ class FixCityFlaskTests(unittest.TestCase):
         if com_foto:
             data["foto_chamado"] = (io.BytesIO(b"foto-denuncia"), "denuncia.png")
 
-        with patch("fixcity.services.chamado_service.geocodificar_endereco", return_value=coords), patch(
-            "fixcity.services.chamado_service.buscar_endereco_por_cep",
+        with patch("fixcity.models.call_model.geocodificar_endereco", return_value=coords), patch(
+            "fixcity.models.call_model.buscar_endereco_por_cep",
             return_value={"rua": "Rua A", "bairro": "Centro", "cidade": "Sao Paulo", "estado": "SP"},
         ):
             response = self.client.post(

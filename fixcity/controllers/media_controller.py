@@ -1,8 +1,6 @@
-import io
-
 from flask import Response, abort, redirect, url_for
 
-from ..services.auth_service import buscar_usuario_por_id
+from ..models.user_model import buscar_usuario_por_id
 from ..utils import mapping_get
 
 
@@ -21,3 +19,7 @@ def foto_perfil_usuario(user_id: int):
         return redirect(url_for("static", filename=legacy_path))
 
     abort(404)
+
+
+def register_media_routes(app):
+    app.add_url_rule("/media/perfis/<int:user_id>/", view_func=foto_perfil_usuario, endpoint="foto_perfil_usuario")

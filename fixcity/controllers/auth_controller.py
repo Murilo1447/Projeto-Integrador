@@ -1,7 +1,7 @@
 from flask import flash, redirect, render_template, request, session, url_for
 
 from ..auth import guest_only, login_required
-from ..services.auth_service import (
+from ..models.user_model import (
     autenticar_usuario,
     cadastro_defaults,
     criar_usuario,
@@ -60,3 +60,9 @@ def logout():
     session.clear()
     flash("Voce saiu da sua conta.", "success")
     return redirect(url_for("home"))
+
+
+def register_auth_routes(app):
+    app.add_url_rule("/login/", view_func=login, methods=["GET", "POST"], endpoint="login")
+    app.add_url_rule("/cadastro/", view_func=cadastro, methods=["GET", "POST"], endpoint="cadastro")
+    app.add_url_rule("/logout/", view_func=logout, methods=["POST"], endpoint="logout")
