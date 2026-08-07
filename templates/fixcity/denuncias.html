@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FixCity - Comunidade</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+</head>
+<body class="site-shell social-page" data-active-tab="{{ active_tab }}">
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('home') }}" class="brand-lockup">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+        <div>
+          <strong>FixCity</strong>
+          <span>Feed comunitario de denuncias urbanas</span>
+        </div>
+      </a>
+
+      <nav class="nav-actions">
+        <a href="{{ url_for('home') }}" class="btn btn-ghost">Voltar ao inicio</a>
+        <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
+        <a href="{{ url_for('denuncias', aba='feed') }}#notificacoes" class="btn btn-ghost notification-link">
+          Alertas
+          {% if notification_summary.unread_count %}
+            <span class="notification-badge">{{ notification_summary.unread_count }}</span>
+          {% endif %}
+        </a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
+        {% endif %}
+        <div class="user-pill">
+          <div class="avatar">
+            {% if current_user.avatar_url %}
+              <img src="{{ current_user.avatar_url }}" alt="Foto de perfil de {{ current_user.nome }}">
+            {% else %}
+              <span>{{ current_user.nome[:2].upper() }}</span>
+            {% endif %}
+          </div>
+          <div class="user-pill-copy">
+            <strong>{{ current_user.nome }}</strong>
+            <span>{{ current_user.email }}</span>
+          </div>
+        </div>
+        <form method="post" action="{{ url_for('logout') }}">
+          <button type="submit" class="btn btn-secondary">Sair</button>
+        </form>
+      </nav>
+    </div>
+  </header>
+
+  <main class="social-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-wrapper">
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="mensagem {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <section class="social-hero section-shell">
+      <div class="social-hero-copy" data-reveal>
+        <p class="eyebrow">Comunidade em movimento</p>
+        <h1>Um feed para sugerir, denunciar, apoiar e acompanhar a cidade.</h1>
+        <p class="hero-description">
+          O FixCity agora aproxima chamados e interacao social: cada publicacao entra no feed,
+          recebe comentarios, apoio da comunidade e contexto geografico.
+        </p>
+      </div>
+
+      <div class="tab-switcher" role="tablist" aria-label="Abas da area de denuncias" data-reveal>
+        <button
+          type="button"
+          class="tab-button {% if active_tab == 'feed' %}is-active{% endif %}"
+          data-tab-target="feed"
+          aria-selected="{{ 'true' if active_tab == 'feed' else 'false' }}"
+        >
+          Feed da comunidade
+        </button>
+        <button
+          type="button"
+          class="tab-button {% if active_tab == 'novo' %}is-active{% endif %}"
+          data-tab-target="novo"
+          aria-selected="{{ 'true' if active_tab == 'novo' else 'false' }}"
+        >
+          Novo Chamado
+        </button>
+      </div>
+    </section>
+
+    <section class="section-shell tab-panel {% if active_tab == 'feed' %}is-active{% endif %}" data-tab-panel="feed">
+      <div class="feed-stats-grid">
+        <article class="feed-stat-card" data-reveal>
+          <span>Total</span>
+          <strong>{{ feed_stats.total }}</strong>
+          <p>publicacoes no feed</p>
+        </article>
+        <article class="feed-stat-card" data-reveal>
+          <span>Com mapa</span>
+          <strong>{{ feed_stats.com_mapa }}</strong>
+          <p>ocorrencias localizadas</p>
+        </article>
+        <article class="feed-stat-card" data-reveal>
+          <span>Apoios</span>
+          <strong>{{ feed_stats.apoios }}</strong>
+          <p>interacoes da comunidade</p>
+        </article>
+        <article class="feed-stat-card" data-reveal>
+          <span>Comentarios</span>
+          <strong>{{ feed_stats.comentarios }}</strong>
+          <p>conversas abertas nos posts</p>
+        </article>
+      </div>
+
+      <div class="feed-layout">
+        <aside class="feed-sidebar" data-reveal>
+          <div class="side-card">
+            <p class="eyebrow">Seu papel</p>
+            <h3>Voce participa como morador e ajuda a dar prioridade ao que importa.</h3>
+            <ul class="bullet-list">
+              <li>Apoie problemas que merecem mais visibilidade.</li>
+              <li>Comente com detalhes que ajudem a comunidade.</li>
+              <li>Acompanhe a mudanca de status em cada post.</li>
+            </ul>
+          </div>
+
+          <div class="side-card">
+            <p class="eyebrow">Atalhos</p>
+            <div class="quick-actions">
+              <button type="button" class="btn btn-primary quick-action" data-tab-shortcut="novo">Criar novo chamado</button>
+              <button type="button" class="btn btn-secondary quick-action" data-tab-shortcut="feed">Voltar ao feed</button>
+            </div>
+          </div>
+
+          <div class="side-card">
+            <p class="eyebrow">Filtro de localizacao</p>
+            <form method="get" action="{{ url_for('denuncias') }}" class="location-filter-form">
+              <input type="hidden" name="aba" value="feed">
+
+              <label for="campo-localizacao-feed">Filtrar por</label>
+              <select id="campo-localizacao-feed" name="campo_localizacao">
+                {% for value, label in location_filter_choices %}
+                  <option value="{{ value }}" {% if location_filter.campo == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+
+              <label for="busca-localizacao-feed">Termo</label>
+              <input
+                type="text"
+                id="busca-localizacao-feed"
+                name="busca_localizacao"
+                placeholder="Ex.: Sudeste, SP, Sao Paulo, Brasil"
+                value="{{ location_filter.busca }}"
+              >
+
+              <div class="quick-actions">
+                <button type="submit" class="btn btn-primary quick-action">Aplicar filtro</button>
+                <a href="{{ url_for('denuncias', aba='feed') }}" class="btn btn-secondary quick-action">Limpar</a>
+              </div>
+            </form>
+
+            {% if location_filter.ativo %}
+              <div class="filter-result-copy">
+                <strong>Filtro ativo</strong>
+                <span>{{ location_filter.descricao }}</span>
+                <span>{{ chamados|length }} resultado{{ '' if chamados|length == 1 else 's' }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if notification_summary.recent %}
+            <div class="side-card" id="notificacoes">
+              <p class="eyebrow">Notificacoes</p>
+              <div class="notification-list">
+                {% for notification in notification_summary.recent %}
+                  <a
+                    class="notification-item {% if not notification.lida %}is-unread{% endif %}"
+                    href="{{ url_for('denuncias', aba='feed') }}#denuncia-{{ notification.chamado_id }}"
+                  >
+                    <strong>{{ notification.titulo }}</strong>
+                    <p>{{ notification.mensagem }}</p>
+                  </a>
+                {% endfor %}
+              </div>
+              {% if notification_summary.unread_count %}
+                <form method="post" action="{{ url_for('marcar_notificacoes_lidas') }}">
+                  <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}#notificacoes">
+                  <button type="submit" class="btn btn-secondary quick-action">Marcar tudo como lido</button>
+                </form>
+              {% endif %}
+            </div>
+          {% endif %}
+        </aside>
+
+        <div class="feed-main">
+          {% if chamados %}
+            <div class="social-feed">
+              {% for chamado in chamados %}
+                <article class="social-post" id="denuncia-{{ chamado.id }}" data-reveal>
+                  <div class="social-post-top">
+                    <div class="perfil-inline">
+                      <div class="avatar">
+                        {% if chamado.avatar_url %}
+                          <img src="{{ chamado.avatar_url }}" alt="Foto de perfil de {{ chamado.autor_exibicao }}">
+                        {% else %}
+                          <span>{{ chamado.avatar_iniciais }}</span>
+                        {% endif %}
+                      </div>
+                      <div class="author-copy">
+                        <strong><a href="{{ url_for('perfil_publico', user_id=chamado.owner_user_id) }}">{{ chamado.autor_exibicao }}</a></strong>
+                        <span>{{ chamado.tempo_relativo }} · {{ chamado.endereco_completo }}</span>
+                      </div>
+                    </div>
+
+                    <div class="post-top-meta">
+                      <span class="feed-chip">{{ chamado.categoria_label }}</span>
+                      <span class="priority-badge {{ chamado.priority_css }}">{{ chamado.priority_label }}</span>
+                      <span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span>
+                    </div>
+                  </div>
+
+                  <div class="social-copy">
+                    <h2>{{ chamado.categoria_label }} em {{ chamado.bairro or chamado.cidade or 'local informado' }}</h2>
+                    <p>{{ chamado.descricao }}</p>
+                    {% if chamado.localizacao_resumida or chamado.regiao %}
+                      <p class="social-location">
+                        <strong>Local:</strong>
+                        <span>
+                          {{ chamado.localizacao_resumida or 'Localizacao informada' }}
+                          {% if chamado.regiao %} | Regiao {{ chamado.regiao }}{% endif %}
+                        </span>
+                      </p>
+                    {% endif %}
+                  </div>
+
+                  <div class="engagement-strip">
+                    <span>{{ chamado.upvotes_label }}</span>
+                    <span>{{ chamado.comentarios_label }}</span>
+                    {% if chamado.email %}
+                      <span>Contato: {{ chamado.email }}</span>
+                    {% endif %}
+                  </div>
+
+                  {% if chamado.foto_chamado_url %}
+                    <div class="post-media-shell">
+                      <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denuncia {{ chamado.categoria_label }}" class="post-media-image">
+                    </div>
+                  {% endif %}
+
+                  {% if chamado.coordinates_available %}
+                    <div class="mini-map-shell">
+                      <div class="mini-map-header">
+                        <strong>Local do chamado</strong>
+                        <span>{{ chamado.endereco_completo }}</span>
+                      </div>
+                      <div
+                        class="mini-map"
+                        id="mini-map-{{ chamado.id }}"
+                        data-mini-map
+                        data-lat="{{ chamado.latitude }}"
+                        data-lng="{{ chamado.longitude }}"
+                        data-title="{{ chamado.categoria_label|e }}"
+                        data-address="{{ chamado.endereco_completo|e }}"
+                      ></div>
+                    </div>
+                  {% else %}
+                    <div class="mini-map-placeholder">
+                      <strong>Mapa indisponivel</strong>
+                      <p>Esse chamado ainda nao possui coordenadas suficientes para exibir a localizacao.</p>
+                    </div>
+                  {% endif %}
+
+                  <div class="social-actions-row">
+                    <form method="post" action="{{ url_for('alternar_upvote', pk=chamado.id) }}" class="action-inline">
+                      <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
+                      <button type="submit" class="btn-upvote {% if chamado.has_upvoted %}is-active{% endif %}">
+                        <span class="btn-upvote-icon">^</span>
+                        <span>{{ "Apoiado por voce" if chamado.has_upvoted else "Apoiar publicacao" }}</span>
+                      </button>
+                    </form>
+
+                    <button
+                      type="button"
+                      class="btn-toggle-discussion"
+                      data-discussion-toggle
+                      data-target-id="discussion-{{ chamado.id }}"
+                      aria-controls="discussion-{{ chamado.id }}"
+                      aria-expanded="false"
+                    >
+                      <span class="discussion-toggle-label">Abrir comentarios</span>
+                    </button>
+                  </div>
+
+                  {% if current_user.is_admin or chamado.owner_user_id == current_user.id_usuario %}
+                    <form method="post" action="{{ url_for('atualizar_status', pk=chamado.id) }}" class="form-status social-status-form">
+                      <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
+                      <div class="campo-status">
+                        <label for="status-{{ chamado.id }}">Atualizar status</label>
+                        <select id="status-{{ chamado.id }}" name="status">
+                          {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if chamado.status == value %}selected{% endif %}>{{ label }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <button type="submit" class="btn btn-secondary">Salvar status</button>
+                    </form>
+                  {% endif %}
+
+                  <section class="discussion-block" id="discussion-{{ chamado.id }}" data-discussion-panel hidden>
+                    <div class="discussion-header">
+                      <h3>Comentarios da comunidade</h3>
+                    </div>
+
+                    {% if chamado.comentarios %}
+                      <div class="comentarios-lista">
+                        {% for comentario in chamado.comentarios %}
+                          <div class="comentario">
+                            <div class="comentario-topo">
+                              <div class="perfil-inline">
+                                <div class="avatar avatar-pequeno">
+                                  {% if comentario.avatar_url %}
+                                    <img src="{{ comentario.avatar_url }}" alt="Foto de perfil de {{ comentario.autor_exibicao }}">
+                                  {% else %}
+                                    <span>{{ comentario.avatar_iniciais }}</span>
+                                  {% endif %}
+                                </div>
+                                <strong>
+                                  {% if comentario.autor_user_id %}
+                                    <a href="{{ url_for('perfil_publico', user_id=comentario.autor_user_id) }}">{{ comentario.autor_exibicao }}</a>
+                                  {% else %}
+                                    {{ comentario.autor_exibicao }}
+                                  {% endif %}
+                                </strong>
+                              </div>
+                              <span>{{ comentario.tempo_relativo }}</span>
+                            </div>
+                            <p>{{ comentario.texto }}</p>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="sem-comentarios">Sem comentarios ainda. Seja a primeira pessoa a contribuir.</p>
+                    {% endif %}
+
+                    <form method="post" action="{{ url_for('adicionar_comentario', pk=chamado.id) }}" class="form-comentario">
+                      <input type="hidden" name="aba" value="feed">
+                      <input type="hidden" name="campo_localizacao" value="{{ location_filter.campo }}">
+                      <input type="hidden" name="busca_localizacao" value="{{ location_filter.busca }}">
+                      <label for="comentario-{{ chamado.id }}">Novo comentario</label>
+                      <textarea id="comentario-{{ chamado.id }}" name="texto" placeholder="Escreva um comentario como {{ current_user.nome }}" required></textarea>
+                      <button type="submit" class="btn btn-primary">Enviar comentario</button>
+                    </form>
+                  </section>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="feed-empty-state" data-reveal>
+              <h3>{{ "Nenhuma denuncia encontrada para esse filtro." if location_filter.ativo else "Nenhuma denuncia registrada ainda." }}</h3>
+              <p>
+                {{ "Tente ajustar regiao, cidade, estado ou pais para ampliar a busca." if location_filter.ativo else 'Use a aba "Nova publicacao" para abrir o primeiro chamado da comunidade.' }}
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="section-shell tab-panel {% if active_tab == 'novo' %}is-active{% endif %}" data-tab-panel="novo">
+      <div class="composer-box" data-reveal>
+        <div class="composer-header">
+          <div>
+            <p class="eyebrow">Publicar agora</p>
+            <h2>Novo Chamado com linguagem de post e objetivo de utilidade publica.</h2>
+          </div>
+          <p class="composer-copy">
+            Escreva de forma clara, informe o endereco e ajude a comunidade a identificar o problema com rapidez.
+          </p>
+        </div>
+
+        <form method="post" class="composer-form" enctype="multipart/form-data">
+          <div class="perfil-card">
+            <div class="avatar avatar-grande">
+              {% if current_user.avatar_url %}
+                <img src="{{ current_user.avatar_url }}" alt="Foto de perfil de {{ current_user.nome }}">
+              {% else %}
+                <span>{{ current_user.nome[:2].upper() }}</span>
+              {% endif %}
+            </div>
+            <div>
+              <strong>{{ current_user.nome }}</strong>
+              <p class="meta-chamado">{{ current_user.email }}</p>
+              <p class="meta-chamado">CPF: {{ current_user.cpf }}</p>
+            </div>
+          </div>
+          {% if errors.cpf %}<small class="field-error">{{ errors.cpf }}</small>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label for="categoria">Categoria</label>
+              <select id="categoria" name="categoria" required>
+                <option value="">Selecione o problema</option>
+                {% for value, label in category_choices %}
+                  <option value="{{ value }}" {% if form_data.categoria == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.categoria %}<small class="field-error">{{ errors.categoria }}</small>{% endif %}
+            </div>
+
+            <div>
+              <label for="cep">CEP</label>
+              <input type="text" id="cep" name="cep" placeholder="Digite o CEP" value="{{ form_data.cep }}">
+              {% if errors.cep %}<small class="field-error">{{ errors.cep }}</small>{% endif %}
+            </div>
+
+            <div>
+              <label for="rua">Rua</label>
+              <input type="text" id="rua" name="rua" placeholder="Rua" value="{{ form_data.rua }}">
+            </div>
+
+            <div>
+              <label for="numero">Numero</label>
+              <input type="text" id="numero" name="numero" placeholder="Numero" value="{{ form_data.numero }}">
+            </div>
+
+            <div>
+              <label for="bairro">Bairro</label>
+              <input type="text" id="bairro" name="bairro" placeholder="Bairro" value="{{ form_data.bairro }}">
+            </div>
+
+            <div>
+              <label for="cidade">Cidade</label>
+              <input type="text" id="cidade" name="cidade" placeholder="Cidade" value="{{ form_data.cidade }}">
+            </div>
+          </div>
+
+          <label for="descricao">Descricao do problema</label>
+          <textarea id="descricao" name="descricao" placeholder="Conte o que esta acontecendo, como afeta a regiao e o que merece prioridade..." required>{{ form_data.descricao }}</textarea>
+          {% if errors.descricao %}<small class="field-error">{{ errors.descricao }}</small>{% endif %}
+
+          <label for="foto_chamado">Foto da denuncia</label>
+          <input type="file" id="foto_chamado" name="foto_chamado" accept="image/png,image/jpeg,image/webp,image/gif">
+          {% if errors.foto_chamado %}<small class="field-error">{{ errors.foto_chamado }}</small>{% endif %}
+
+          <button type="submit" class="btn btn-primary btn-publicar">Registrar chamado</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/denuncias-feed.js') }}"></script>
+  <script>
+    const cepInput = document.getElementById("cep");
+
+    if (cepInput) {
+      cepInput.addEventListener("blur", async () => {
+        const cep = cepInput.value.replace(/\D/g, "");
+        if (cep.length !== 8) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+          const dados = await response.json();
+
+          if (dados.erro) {
+            return;
+          }
+
+          document.getElementById("rua").value = document.getElementById("rua").value || dados.logradouro || "";
+          document.getElementById("bairro").value = document.getElementById("bairro").value || dados.bairro || "";
+          document.getElementById("cidade").value = document.getElementById("cidade").value || dados.localidade || "";
+        } catch (_error) {
+        }
+      });
+    }
+  </script>
+</body>
+</html>
