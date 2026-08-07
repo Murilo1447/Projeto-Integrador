@@ -273,3 +273,23 @@ const ano = document.getElementById("ano");
 if (ano) {
   ano.textContent = new Date().getFullYear();
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+  let ultimoScroll = 0; 
+  const header = document.querySelector('.site-header'); 
+
+  // Se não achar o cabeçalho nesta página, ele para por aqui e não dá erro
+  if (!header) return; 
+
+  window.addEventListener('scroll', () => {
+    const scrollAtual = window.scrollY || document.documentElement.scrollTop;
+
+    if (scrollAtual > ultimoScroll && scrollAtual > 50) {
+      header.classList.add('escondido');
+    } else {
+      header.classList.remove('escondido');
+    }
+
+    ultimoScroll = Math.max(scrollAtual, 0); 
+  });
+});

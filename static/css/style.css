@@ -311,6 +311,15 @@ img {
   margin-bottom: 12px;
 }
 
+.eyebrow-reverse {
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
 .hero-copy h1,
 .social-hero-copy h1,
 .auth-brand-panel h1 {
@@ -1726,4 +1735,15 @@ textarea {
   .map-dashboard-page {
     overflow: auto;
   }
+}
+
+.site-header {
+  position: sticky; /* ou position: fixed; */
+  top: 0;
+  z-index: 9999; /* Garante que o cabeçalho fique por cima do mapa e do feed */
+  transition: transform 0.3s ease-in-out; 
+}
+
+.site-header.escondido {
+  transform: translateY(-100%) !important; /* O !important força a ação */
 }
