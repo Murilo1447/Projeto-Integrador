@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TIMEZONE = ZoneInfo("America/Sao_Paulo")
-PALAVRAS_PROIBIDAS = ("idiota", "burro", "lixo")
+PALAVRAS_PROIBIDAS = ("idiota", "burro", "imbecil", "estupido", "estúpido", "bobo", "otário", "otario", "otaria", "otária"  )
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 CATEGORIAS = [
     ("BURACO", "Buraco"),
