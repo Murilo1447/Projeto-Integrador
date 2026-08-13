@@ -149,3 +149,21 @@ def user_is_admin(user) -> bool:
 
 def login_redirect_target():
     return request.full_path if request.query_string else request.path
+
+
+def censurar_email(email: str) -> str:
+    """Mascara o e-mail se o perfil for privado.
+    
+    Exemplo: 'mumuzinho886@gmail.com' -> 'm***6@gmail.com'
+    """
+    if not email or "@" not in email:
+        return email
+
+    usuario, dominio = email.split("@", 1)
+    
+    if len(usuario) <= 2:
+        usuario_censurado = usuario[0] + "*"
+    else:
+        usuario_censurado = usuario[0] + "*" * (len(usuario) - 2) + usuario[-1]
+
+    return f"{usuario_censurado}@{dominio}"

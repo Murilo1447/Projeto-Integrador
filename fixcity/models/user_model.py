@@ -1,9 +1,14 @@
 import re
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..db import get_db, mysql_enabled, mysql_insert_id
-from ..utils import agora_iso, cpf_valido, imagem_permitida, ler_upload_imagem_blob, telefone_valido
+from ..utils import (
+    agora_iso,
+    cpf_valido,
+    imagem_permitida,
+    ler_upload_imagem_blob,
+    telefone_valido,
+)
 
 
 def cadastro_defaults() -> dict:
@@ -30,9 +35,9 @@ def buscar_usuario_por_id(user_id: int | None):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE id_usuario = ?
+        WHERE id_usuario = %s
     """
     return get_db().execute(query, (user_id,)).fetchone()
 
@@ -42,9 +47,9 @@ def buscar_usuario_por_email(email: str):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE email = ?
+        WHERE email = %s
     """
     return get_db().execute(query, (email,)).fetchone()
 
@@ -54,9 +59,9 @@ def buscar_usuario_por_cpf(cpf: str):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE cpf = ?
+        WHERE cpf = %s
     """
     return get_db().execute(query, (cpf,)).fetchone()
 
@@ -99,8 +104,8 @@ def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
     db = get_db()
     cursor = db.execute(
         """
-        INSERT INTO usuarios (nome, email, senha, telefone, cpf, foto_perfil, foto_perfil_blob, foto_perfil_mime, criado_em)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO usuarios (nome, email, senha, telefone, cpf, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime, criado_em)
+        VALUES (%s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
         """,
         (
             data["nome"],
@@ -114,5 +119,38 @@ def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
             agora_iso(),
         ),
     )
-    db.commit()
+    if hasattr(db, "commit"):
+        db.commit()
     return mysql_insert_id(cursor) if mysql_enabled() else cursor.lastrowid
+
+def alternar_privacidade_usuario(user_id: int) -> bool:
+    """Alterna o status de privacidade do usuário entre público e privado."""
+    db = get_db()
+
+    # 1. Busca o status atual garantindo o tipo bool
+    row = db.execute(
+        "SELECT is_private FROM usuarios WHERE id_usuario = %s",
+        (user_id,)
+    ).fetchone()
+
+    novo_status = True
+    if row:
+        # Pega o valor independente se row é dicionário ou tupla
+        val = row["is_private"] if isinstance(row, dict) else row[0]
+        # Inverte o valor (se era 1/True vira False, se era 0/False vira True)
+        novo_status = not bool(val)
+
+    # 2. Executa o UPDATE (converte bool para int 1/0 para compatibilidade total com MySQL/MariaDB)
+    valor_banco = 1 if novo_status else 0
+    db.execute(
+        "UPDATE usuarios SET is_private = %s WHERE id_usuario = %s",
+        (valor_banco, user_id)
+    )
+
+    # 3. Força o commit no driver interno se existir
+    if hasattr(db, "conn") and hasattr(db.conn, "commit"):
+        db.conn.commit()
+    elif hasattr(db, "commit"):
+        db.commit()
+
+    return novo_status

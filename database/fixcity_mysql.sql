@@ -79,3 +79,5 @@ CREATE TABLE IF NOT EXISTS upvotes_denuncia (
         FOREIGN KEY (id_denuncia) REFERENCES denuncias (id_denuncia)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
