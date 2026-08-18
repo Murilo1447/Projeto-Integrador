@@ -1747,3 +1747,28 @@ textarea {
 .site-header.escondido {
   transform: translateY(-100%) !important; /* O !important força a ação */
 }
+
+.feed-empty-state.profile-empty-state {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background-color: var(--surface, #ffffff);
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+}
+
+.feed-empty-state.profile-empty-state h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink, #212529);
+  margin: 0;
+  line-height: 1.4;
+  white-space: normal;
+}
