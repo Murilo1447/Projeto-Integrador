@@ -10,13 +10,20 @@ with app.app_context():
         # Garante que o banco correto está selecionado
         db.execute("USE FixcityDB;")
         
-        # Executa o comando para adicionar a coluna de privacidade
-        db.execute("ALTER TABLE usuarios ADD COLUMN is_private TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;")
-        
-        # Se o seu objeto db exigir commit manual
+        try:
+            # 1. Tenta adicionar a coluna já com DEFAULT 1 (Privado por padrão)
+            db.execute("ALTER TABLE usuarios ADD COLUMN is_private TINYINT(1) NOT NULL DEFAULT 1 AFTER is_admin;")
+            print("✅ Coluna 'is_private' criada com sucesso com DEFAULT 1!")
+        except Exception as e:
+            # 2. Se a coluna já existia (ex: criada anteriormente com DEFAULT 0), atualiza o DEFAULT e os dados existentes
+            print(f"ℹ️ Coluna já existe, atualizando o padrão para 1... ({e})")
+            db.execute("ALTER TABLE usuarios ALTER COLUMN is_private SET DEFAULT 1;")
+            db.execute("UPDATE usuarios SET is_private = 1 WHERE is_private = 0;")
+            print("✅ Coluna 'is_private' atualizada para DEFAULT 1 e registros convertidos!")
+
+        # Confirma as alterações
         if hasattr(db, 'commit'):
             db.commit()
             
-        print("✅ Coluna 'is_private' adicionada com sucesso no MySQL!")
     except Exception as e:
-        print(f"⚠️ Mensagem do banco: {e}")
+        print(f"⚠️ Mensagem de erro do banco: {e}")

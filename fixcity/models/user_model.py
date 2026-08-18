@@ -105,7 +105,7 @@ def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
     cursor = db.execute(
         """
         INSERT INTO usuarios (nome, email, senha, telefone, cpf, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime, criado_em)
-        VALUES (%s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s)
         """,
         (
             data["nome"],
