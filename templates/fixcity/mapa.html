@@ -36,7 +36,7 @@
         {% if current_user %}
           <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
           <a href="{{ filtered_feed_url }}#notificacoes" class="btn btn-ghost notification-link">
-            Alertas
+            Notificações
             {% if notification_summary.unread_count %}
               <span class="notification-badge">{{ notification_summary.unread_count }}</span>
             {% endif %}
