@@ -73,7 +73,10 @@
         <section class="flash-wrapper">
           <div class="flash-stack">
             {% for category, message in messages %}
-              <div class="mensagem {{ category }}">{{ message }}</div>
+              <div class="mensagem {{ category }}">
+                <span>{{ message }}</span>
+                <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Fechar">&times;</button>
+              </div>
             {% endfor %}
           </div>
         </section>

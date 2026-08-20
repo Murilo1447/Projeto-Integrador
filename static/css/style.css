@@ -226,11 +226,42 @@ img {
   gap: 12px;
 }
 
+/* Atualize sua classe .mensagem existente para incluir estas propriedades */
 .mensagem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Empurra o "x" para o canto direito */
   padding: 14px 18px;
   border-radius: 18px;
   font-weight: 700;
   box-shadow: var(--shadow-md);
+  gap: 12px; /* Garante que o texto não encoste no botão em telas pequenas */
+}
+
+/* Adicione este estilo para deixar o botão mais elegante */
+.alert-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem; /* Deixa o X num tamanho bom para clicar */
+  line-height: 1;
+  color: var(--primary-dark); /* Puxa o verde escuro do seu tema */
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  margin-right: -8px; /* Ajuste visual para ele não ficar muito longe da borda */
+}
+
+/* Efeito ao passar o mouse */
+.alert-close:hover {
+  opacity: 1;
+  color: var(--primary);
+  background: rgba(32, 106, 67, 0.12); /* Fundo verdinho sutil */
 }
 
 .mensagem.success {
@@ -1772,3 +1803,83 @@ textarea {
   line-height: 1.4;
   white-space: normal;
 }
+@media (max-width: 768px) {
+  /* Transforma o painel em gaveta inferior fixa */
+  .floating-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 75vh;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+    z-index: 1000;
+    overflow-y: auto;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Oculta o botão de arrastar no celular */
+  .panel-drag-handle {
+    display: none !important;
+  }
+
+  /* ESTADO MINIMIZADO: Altura ajustada para não cortar o botão */
+  .floating-panel.is-minimized,
+  .floating-panel[data-minimized="true"],
+  .floating-panel.minimizado {
+    max-height: 76px !important; /* Dá espaço para o botão não ser cortado */
+    overflow: hidden !important;
+    padding: 0 !important; /* Remove o padding que empurrava o botão */
+  }
+
+  /* Mantém apenas a barra superior visível ao minimizar */
+  .floating-panel.is-minimized .panel-head,
+  .floating-panel.is-minimized .panel-section,
+  .floating-panel.is-minimized .panel-actions,
+  .floating-panel.is-minimized .panel-tags,
+  .floating-panel[data-minimized="true"] .panel-head,
+  .floating-panel[data-minimized="true"] .panel-section,
+  .floating-panel[data-minimized="true"] .panel-actions,
+  .floating-panel[data-minimized="true"] .panel-tags {
+    display: none !important;
+  }
+
+  /* Ajusta a barra do topo para centralizar o botão de Minimizar/Restaurar */
+  .panel-topbar {
+    padding: 12px 20px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centraliza o botão na tela */
+    width: 100%;
+  }
+
+  /* Aumenta o tamanho do botão para facilitar o clique no celular */
+  .panel-controls {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .panel-minimize {
+    padding: 12px 32px !important;
+    font-size: 16px;
+    border-radius: 30px;
+  }
+
+  /* Reposiciona os botões de zoom do Leaflet */
+  .leaflet-top.leaflet-right,
+  .leaflet-top.leaflet-left {
+    top: 12px !important;
+  }
+
+  /* Oculta a indicação visual de clique no mapa quando a gaveta estiver aberta */
+  #map-overlay {
+    top: 12px;
+    bottom: auto;
+  }
+} /* Fim do @media para celular */
