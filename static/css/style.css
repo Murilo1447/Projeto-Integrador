@@ -1,3 +1,6 @@
+/* ==========================================================================
+   1. VARIÁVEIS E CONFIGURAÇÕES GLOBAIS
+   ================================================================---------- */
 :root {
   --primary: #206a43;
   --primary-dark: #164c31;
@@ -62,6 +65,9 @@ img {
   max-width: 100%;
 }
 
+/* ==========================================================================
+   2. HEADER E ESTRUTURA BASE
+   ================================================================---------- */
 .site-shell {
   position: relative;
 }
@@ -69,10 +75,15 @@ img {
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 9999;
   backdrop-filter: blur(16px);
   background: rgba(247, 250, 247, 0.78);
   border-bottom: 1px solid rgba(27, 51, 38, 0.08);
+  transition: transform 0.3s ease-in-out;
+}
+
+.site-header.escondido {
+  transform: translateY(-100%) !important;
 }
 
 .header-inner,
@@ -91,6 +102,11 @@ img {
   padding: 18px 0;
 }
 
+.compact-header .header-inner {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
 .brand-lockup {
   display: inline-flex;
   align-items: center;
@@ -103,7 +119,9 @@ img {
 .social-copy h2,
 .social-hero-copy h1,
 .auth-brand-panel h1,
-.auth-card h2 {
+.auth-card h2,
+.composer-header h2,
+.panel-head h2 {
   font-family: "Space Grotesk", sans-serif;
 }
 
@@ -132,6 +150,9 @@ img {
   flex-wrap: wrap;
 }
 
+/* ==========================================================================
+   3. BOTÕES E COMPONENTES DE UI
+   ================================================================---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -216,6 +237,9 @@ img {
   color: var(--muted);
 }
 
+/* ==========================================================================
+   4. MENSAGENS E ALERTAS FLASH
+   ================================================================---------- */
 .flash-wrapper {
   padding-top: 20px;
 }
@@ -227,10 +251,38 @@ img {
 }
 
 .mensagem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 14px 18px;
   border-radius: 18px;
   font-weight: 700;
   box-shadow: var(--shadow-md);
+  gap: 12px;
+}
+
+.alert-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--primary-dark);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  margin-right: -8px;
+}
+
+.alert-close:hover {
+  opacity: 1;
+  color: var(--primary);
+  background: rgba(32, 106, 67, 0.12);
 }
 
 .mensagem.success {
@@ -243,6 +295,9 @@ img {
   color: #ad3939;
 }
 
+/* ==========================================================================
+   5. SEÇÕES, HERO E GRID PRINCIPAL
+   ================================================================---------- */
 .section-shell {
   padding: 34px 0;
 }
@@ -496,6 +551,9 @@ img {
   padding: 20px;
 }
 
+/* ==========================================================================
+   6. STATS E CARDS DE CONTEÚDO
+   ================================================================---------- */
 .stats-grid,
 .feed-stats-grid,
 .steps-grid,
@@ -555,7 +613,14 @@ img {
   align-items: start;
 }
 
-.map-card,
+/* CORREÇÃO DO RESPIRO DO MAPA E DA BARRA DE PESQUISA */
+.map-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px;
+}
+
 .composer-box,
 .auth-card {
   padding: 28px;
@@ -584,8 +649,12 @@ img {
   max-width: 24ch;
 }
 
+/* ==========================================================================
+   7. INPUTS, BUSCA E MAPA
+   ================================================================---------- */
 .search-shell {
   position: relative;
+  width: 100%;
 }
 
 .search,
@@ -818,6 +887,9 @@ textarea {
   line-height: 1.7;
 }
 
+/* ==========================================================================
+   8. FOOTER
+   ================================================================---------- */
 .site-footer {
   margin-top: 40px;
   padding: 32px 0 38px;
@@ -854,6 +926,9 @@ textarea {
   font-size: 0.9rem;
 }
 
+/* ==========================================================================
+   9. FEED SOCIAL E AÇÕES
+   ================================================================---------- */
 .social-shell {
   padding-bottom: 28px;
 }
@@ -1146,6 +1221,9 @@ textarea {
   border: 1px solid rgba(27, 51, 38, 0.08);
 }
 
+/* ==========================================================================
+   10. AVATARES E PERFIL
+   ================================================================---------- */
 .avatar {
   width: 46px;
   height: 46px;
@@ -1239,7 +1317,6 @@ textarea {
 }
 
 .composer-header h2 {
-  font-family: "Space Grotesk", sans-serif;
   font-size: clamp(1.8rem, 2.4vw, 2.5rem);
   line-height: 1.08;
   max-width: 16ch;
@@ -1258,73 +1335,137 @@ textarea {
   width: 100%;
 }
 
-.auth-page {
-  display: grid;
-  place-items: center;
+/* ==========================================================================
+   11. PÁGINAS DE AUTENTICAÇÃO
+   ================================================================---------- */
+body.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-bg, #f4f7f5);
 }
 
 .auth-shell {
-  width: min(1160px, calc(100% - 32px));
-  padding: 34px 0;
+  width: 100%;
+  max-width: 1100px;
+  padding: 24px;
 }
 
 .auth-layout {
-  grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 0.9fr);
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(380px, 440px);
+  align-items: center;
+  gap: 32px;
 }
 
 .auth-brand-panel,
 .auth-card {
-  padding: 34px;
+  padding: 40px;
+  border-radius: var(--radius-xl, 16px);
 }
 
 .auth-brand-panel {
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(32, 106, 67, 0.98), rgba(22, 76, 49, 0.98)),
-    var(--surface-strong);
+  background: 
+    linear-gradient(180deg, rgba(32, 106, 67, 0.98), rgba(22, 76, 49, 0.98)), 
+    var(--surface-strong, #ffffff);
   color: white;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.auth-brand-panel .brand-lockup {
-  margin-bottom: 40px;
+.auth-brand-panel h1 {
+  font-size: 2.2rem;
+  margin-top: 12px;
+  margin-bottom: 16px;
+  line-height: 1.2;
 }
 
-.auth-brand-panel .brand-lockup span,
 .auth-brand-panel p {
-  color: rgba(255, 255, 255, 0.86);
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.auth-card {
+  background: var(--surface-strong, #ffffff);
+  border: 1px solid rgba(27, 51, 38, 0.08);
+  box-shadow: var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.05));
 }
 
 .auth-card-head {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
-.auth-card-head p,
-.auth-footer {
-  color: var(--muted);
+.auth-card-head h2 {
+  font-size: 1.8rem;
+  color: var(--primary, #1b3326);
+  margin-bottom: 6px;
+}
+
+.auth-card-head p {
+  color: var(--text-muted, #718096);
+  font-size: 0.95rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main, #2d3748);
+  margin-bottom: -8px;
+}
+
+.auth-form input {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.auth-form input:focus {
+  border-color: #206a43;
+}
+
+.auth-submit {
+  margin-top: 8px;
+  width: 100%;
+  padding: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .auth-footer {
-  margin-top: 18px;
+  margin-top: 24px;
   text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted, #718096);
 }
 
 .auth-footer a {
-  color: var(--primary);
-  font-weight: 800;
+  color: var(--primary, #1b3326);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
-.compact-header .header-inner {
-  padding-top: 14px;
-  padding-bottom: 14px;
-}
-
+/* ==========================================================================
+   12. DASHBOARD DO MAPA E PAINÉIS FLUTUANTES
+   ================================================================---------- */
 .map-dashboard-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .map-dashboard-shell {
@@ -1446,7 +1587,6 @@ textarea {
 }
 
 .panel-head h2 {
-  font-family: "Space Grotesk", sans-serif;
   font-size: 1.8rem;
   line-height: 1.05;
 }
@@ -1610,6 +1750,34 @@ textarea {
   transform: translateY(0);
 }
 
+.feed-empty-state.profile-empty-state {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background-color: var(--surface, #ffffff);
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-top: 16px;
+}
+
+.feed-empty-state.profile-empty-state h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink, #212529);
+  margin: 0;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* ==========================================================================
+   13. MEDIA QUERIES E RESPONSIVIDADE
+   ================================================================---------- */
 @media (max-width: 1080px) {
   .hero-grid,
   .content-grid,
@@ -1627,6 +1795,89 @@ textarea {
 
   .feed-sidebar {
     position: static;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .auth-brand-panel {
+    min-height: auto;
+    padding: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Transforma o painel em gaveta inferior fixa no celular */
+  .floating-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 75vh;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+    z-index: 1000;
+    overflow-y: auto;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .panel-drag-handle {
+    display: none !important;
+  }
+
+  .floating-panel.is-minimized,
+  .floating-panel[data-minimized="true"],
+  .floating-panel.minimizado {
+    max-height: 76px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .floating-panel.is-minimized .panel-head,
+  .floating-panel.is-minimized .panel-section,
+  .floating-panel.is-minimized .panel-actions,
+  .floating-panel.is-minimized .panel-tags,
+  .floating-panel[data-minimized="true"] .panel-head,
+  .floating-panel[data-minimized="true"] .panel-section,
+  .floating-panel[data-minimized="true"] .panel-actions,
+  .floating-panel[data-minimized="true"] .panel-tags {
+    display: none !important;
+  }
+
+  .panel-topbar {
+    padding: 12px 20px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .panel-controls {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .panel-minimize {
+    padding: 12px 32px !important;
+    font-size: 16px;
+    border-radius: 30px;
+  }
+
+  .leaflet-top.leaflet-right,
+  .leaflet-top.leaflet-left {
+    top: 12px !important;
+  }
+
+  #map-overlay {
+    top: 12px;
+    bottom: auto;
   }
 }
 
@@ -1711,17 +1962,6 @@ textarea {
     height: calc(100vh - 86px);
   }
 
-  .floating-panel {
-    top: auto;
-    right: 16px;
-    bottom: 16px;
-    left: 16px;
-    width: auto;
-    max-height: 78vh;
-    transform: none;
-    padding: 22px;
-  }
-
   .panel-head,
   .panel-actions,
   .panel-comment-head {
@@ -1736,14 +1976,9 @@ textarea {
     overflow: auto;
   }
 }
-
-.site-header {
-  position: sticky; /* ou position: fixed; */
-  top: 0;
-  z-index: 9999; /* Garante que o cabeçalho fique por cima do mapa e do feed */
-  transition: transform 0.3s ease-in-out; 
-}
-
-.site-header.escondido {
-  transform: translateY(-100%) !important; /* O !important força a ação */
+/* --- FIX DE CONTRASTE NO PAINEL VERDE --- */
+.auth-brand-panel p,
+.auth-brand-panel .brand-lockup span,
+.auth-brand-panel .eyebrow {
+  color: rgba(255, 255, 255, 0.85) !important;
 }

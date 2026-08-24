@@ -25,7 +25,8 @@ from ..models.call_model import (
     validar_chamado,
 )
 from ..models.notification_model import criar_notificacao, marcar_notificacoes_como_lidas
-from ..utils import current_user, normalize_next_url
+from ..models.user_model import alternar_privacidade_usuario, buscar_usuario_por_id
+from ..utils import censurar_email, current_user, normalize_next_url
 
 
 def aba_valida(valor: str | None, default: str = "feed") -> str:
@@ -100,6 +101,18 @@ def denuncias():
 
     chamados = listar_chamados(viewer_user_id=user["id_usuario"], sort_mode="social")
     chamados = filtrar_chamados_por_localizacao(chamados, location_filter)
+
+    # === CENSURA NO FEED ===
+    # Percorre os chamados e mascara o contato se o autor tiver perfil privado
+    for c in chamados:
+        is_privado = bool(c.get("autor_is_private") or c.get("is_private"))
+        contato = c.get("contato") or c.get("email") or ""
+        
+        if is_privado and contato:
+            c["contato"] = censurar_email(contato)
+            if "email" in c:
+                c["email"] = censurar_email(c["email"])
+
     feed_stats = {
         "total": len(chamados),
         "com_mapa": sum(1 for chamado in chamados if chamado["coordinates_available"]),
@@ -107,6 +120,7 @@ def denuncias():
         "comentarios": sum(chamado["comentarios_count"] for chamado in chamados),
         "prioridade_alta": sum(1 for chamado in chamados if chamado["priority_css"] == "alta"),
     }
+
     return render_template(
         "fixcity/denuncias.html",
         chamados=chamados,
@@ -119,7 +133,6 @@ def denuncias():
         location_filter=location_filter,
         location_filter_choices=LOCATION_FILTER_CHOICES,
     )
-
 
 @login_required
 def atualizar_status(pk: int):
@@ -175,14 +188,44 @@ def marcar_notificacoes_lidas_view():
     return redirect(normalize_next_url(request.form.get("next")))
 
 
-def perfil_publico(user_id: int):
-    viewer = current_user()
-    perfil = obter_perfil_publico(user_id, viewer_user_id=viewer["id_usuario"] if viewer else None)
+def perfil_publico(user_id):
+    perfil = obter_perfil_publico(user_id)
+    
     if not perfil:
-        flash("Perfil nao encontrado.", "error")
+        flash("Usuário não encontrado.", "danger")
         return redirect(url_for("home"))
 
+    # 1. Busca os dados atualizados do usuário no banco para garantir o valor exato de is_private
+    dados_usuario = buscar_usuario_por_id(user_id)
+    if dados_usuario:
+        # Pega a chave is_private (seja dict ou objeto)
+        is_priv = dados_usuario.get("is_private") if isinstance(dados_usuario, dict) else getattr(dados_usuario, "is_private", False)
+        perfil["is_private"] = bool(is_priv)
+
+    # 2. Se o perfil estiver privado, censura o e-mail
+    if perfil.get("is_private"):
+        perfil["email"] = censurar_email(perfil.get("email", ""))
+
     return render_template("fixcity/perfil.html", perfil=perfil)
+
+
+@login_required
+def alternar_privacidade_view():
+    user = current_user()
+    if user:
+        novo_status = alternar_privacidade_usuario(user["id_usuario"])
+        
+        # Atualiza o estado da sessão do utilizador
+        user["is_private"] = novo_status
+        
+        if novo_status:
+            flash("Seu perfil agora está privado.", "success")
+        else:
+            flash("Seu perfil agora está público.", "success")
+            
+        return redirect(url_for("perfil_publico", user_id=user["id_usuario"]))
+
+    return redirect(url_for("home"))
 
 
 @admin_required
@@ -202,6 +245,12 @@ def register_main_routes(app):
     app.add_url_rule("/", view_func=home, endpoint="home")
     app.add_url_rule("/mapa/", view_func=mapa_ao_vivo, endpoint="mapa_ao_vivo")
     app.add_url_rule("/usuarios/<int:user_id>/", view_func=perfil_publico, endpoint="perfil_publico")
+    app.add_url_rule(
+        "/perfil/alternar-privacidade/",
+        view_func=alternar_privacidade_view,
+        methods=["POST"],
+        endpoint="alternar_privacidade",
+    )
     app.add_url_rule("/admin/", view_func=dashboard_admin, endpoint="dashboard_admin")
     app.add_url_rule("/denuncias/", view_func=denuncias, methods=["GET", "POST"], endpoint="denuncias")
     app.add_url_rule(

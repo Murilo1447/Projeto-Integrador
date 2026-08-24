@@ -34,7 +34,7 @@
         {% if current_user %}
           <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
           <a href="{{ url_for('denuncias', aba='feed') }}#notificacoes" class="btn btn-ghost notification-link">
-            Alertas
+            Notificações
             {% if notification_summary.unread_count %}
               <span class="notification-badge">{{ notification_summary.unread_count }}</span>
             {% endif %}
@@ -73,7 +73,10 @@
         <section class="flash-wrapper">
           <div class="flash-stack">
             {% for category, message in messages %}
-              <div class="mensagem {{ category }}">{{ message }}</div>
+              <div class="mensagem {{ category }}">
+                <span>{{ message }}</span>
+                <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Fechar">&times;</button>
+              </div>
             {% endfor %}
           </div>
         </section>
@@ -287,8 +290,8 @@
     <section class="section-shell" id="como-funciona">
       <div class="section-heading center" data-reveal>
         <div>
-          <p class="eyebrow">Como funciona</p>
-          <h2>O mesmo objetivo do FixCity, agora com uma experiencia mais viva e colaborativa.</h2>
+          
+          <h2>FixCity, com uma experiencia mais viva e colaborativa.</h2>
         </div>
       </div>
 

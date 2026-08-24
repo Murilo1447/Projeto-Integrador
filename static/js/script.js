@@ -74,11 +74,16 @@ function setupDraggablePanels() {
 
       const nextLeft = startLeft + (event.clientX - startX);
       const nextTop = startTop + (event.clientY - startY);
+
       const maxLeft = Math.max(16, window.innerWidth - panel.offsetWidth - 16);
-      const maxTop = Math.max(16, window.innerHeight - panel.offsetHeight - 16);
+      
+      // Limite vertical flexível: garante topo mínimo e permite deslizar
+      // mantendo ao menos o cabeçalho visível no rodapé da página
+      const minTop = 16;
+      const maxTop = Math.max(minTop, window.innerHeight - 60);
 
       panel.style.left = `${Math.min(Math.max(16, nextLeft), maxLeft)}px`;
-      panel.style.top = `${Math.min(Math.max(16, nextTop), maxTop)}px`;
+      panel.style.top = `${Math.min(Math.max(minTop, nextTop), maxTop)}px`;
     }
 
     function onPointerUp(event) {

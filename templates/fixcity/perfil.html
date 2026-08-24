@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Perfil - {{ perfil.nome }}</title>
+  <title>Perfil - {{ perfil.nome if perfil and perfil.nome else 'Usuário' }}</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="site-shell social-page">
@@ -17,12 +18,12 @@
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
         <div>
           <strong>FixCity</strong>
-          <span>Perfil publico da comunidade</span>
+          <span>Perfil público da comunidade</span>
         </div>
       </a>
 
       <nav class="nav-actions">
-        <a href="{{ url_for('home') }}" class="btn btn-ghost">Inicio</a>
+        <a href="{{ url_for('home') }}" class="btn btn-ghost">Início</a>
         <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa</a>
         <a href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}" class="btn btn-secondary">Feed</a>
         {% if current_user and current_user.is_admin %}
@@ -41,15 +42,44 @@
               {% if perfil.avatar_url %}
                 <img src="{{ perfil.avatar_url }}" alt="Foto de perfil de {{ perfil.nome }}">
               {% else %}
-                <span>{{ perfil.avatar_iniciais }}</span>
+                <span>{{ perfil.avatar_iniciais if perfil.avatar_iniciais else (perfil.nome[0] if perfil.nome else 'U') }}</span>
               {% endif %}
             </div>
-            <div>
-              <p class="eyebrow">Morador da comunidade</p>
-              <h1>{{ perfil.nome }}</h1>
-              <p class="hero-description">{{ perfil.email }}</p>
-              {% if perfil.is_admin %}
-                <span class="priority-badge media">Administrador</span>
+            <div class="profile-meta-info" style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
+              <p class="eyebrow" style="margin: 0;">Morador da comunidade</p>
+              <h1 style="margin: 0; line-height: 1.2;">{{ perfil.nome }}</h1>
+              <p class="hero-description" style="margin: 0; color: #666;">{{ perfil.email }}</p>
+              
+              <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
+                {% if perfil.is_admin %}
+                  <span class="priority-badge media">Administrador</span>
+                {% endif %}
+
+                {% if perfil.is_private %}
+                  <span class="priority-badge baixa" style="background: #e9ecef; color: #495057; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="bi bi-eye-slash-fill"></i> Perfil Privado
+                  </span>
+                {% else %}
+                  <span class="priority-badge baixa" style="background: rgba(25, 135, 84, 0.15); color: #198754; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="bi bi-eye-fill"></i> Perfil Público
+                  </span>
+                {% endif %}
+              </div>
+
+              {% if current_user and perfil and current_user.id_usuario == perfil.id_usuario %}
+                <div style="margin-top: 10px;">
+                  <form action="{{ url_for('alternar_privacidade') }}" method="POST">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; padding: 6px 12px;">
+                      {% if perfil.is_private %}
+                        <i class="bi bi-eye-fill"></i>
+                        <span>Tornar Público</span>
+                      {% else %}
+                        <i class="bi bi-eye-slash-fill"></i>
+                        <span>Tornar Privado</span>
+                      {% endif %}
+                    </button>
+                  </form>
+                </div>
               {% endif %}
             </div>
           </div>
@@ -58,23 +88,23 @@
         <aside class="hero-panel" data-reveal>
           <div class="hero-panel-head">
             <span class="eyebrow">Impacto</span>
-            <strong>Contribuicoes publicas</strong>
+            <strong>Contribuições públicas</strong>
           </div>
           <div class="hero-post-stack">
             <article class="hero-post-card">
-              <strong>{{ perfil.total_chamados }}</strong>
+              <strong>{{ perfil.total_chamados if perfil.total_chamados is not none else 0 }}</strong>
               <p>chamados publicados</p>
             </article>
             <article class="hero-post-card">
-              <strong>{{ perfil.total_apoios_recebidos }}</strong>
+              <strong>{{ perfil.total_apoios_recebidos if perfil.total_apoios_recebidos is not none else 0 }}</strong>
               <p>apoios recebidos</p>
             </article>
             <article class="hero-post-card">
-              <strong>{{ perfil.total_comentarios }}</strong>
-              <p>comentarios recentes</p>
+              <strong>{{ perfil.total_comentarios if perfil.total_comentarios is not none else 0 }}</strong>
+              <p>comentários recentes</p>
             </article>
             <article class="hero-post-card">
-              <strong>{{ perfil.prioridades_altas }}</strong>
+              <strong>{{ perfil.prioridades_altas if perfil.prioridades_altas is not none else 0 }}</strong>
               <p>chamados em alta prioridade</p>
             </article>
           </div>
@@ -87,7 +117,7 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Chamados</p>
-            <h2>Publicacoes de {{ perfil.nome }}</h2>
+            <h2>Publicações de {{ perfil.nome }}</h2>
           </div>
         </div>
 
@@ -111,7 +141,7 @@
                 </div>
                 {% if chamado.foto_chamado_url %}
                   <div class="post-media-shell">
-                    <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denuncia {{ chamado.categoria_label }}" class="post-media-image">
+                    <img src="{{ chamado.foto_chamado_url }}" alt="Imagem da denúncia {{ chamado.categoria_label }}" class="post-media-image">
                   </div>
                 {% endif %}
                 <div class="engagement-strip">
@@ -121,16 +151,16 @@
               </article>
             {% endfor %}
           </div>
-        {% else %}
-          <div class="feed-empty-state">
-            <h3>Esse perfil ainda nao publicou chamados.</h3>
+     {% else %}
+          <div class="feed-empty-state profile-empty-state">
+            <h3>Esse perfil ainda não publicou chamados.</h3>
           </div>
         {% endif %}
       </div>
 
       <aside class="feed-sidebar">
         <div class="side-card" data-reveal>
-          <p class="eyebrow">Comentarios recentes</p>
+          <p class="eyebrow">Comentários recentes</p>
           {% if perfil.comentarios %}
             <div class="notification-list">
               {% for comentario in perfil.comentarios %}
@@ -141,7 +171,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="helper-copy">Sem comentarios recentes publicados por este perfil.</p>
+            <p class="helper-copy">Sem comentários recentes publicados por este perfil.</p>
           {% endif %}
         </div>
       </aside>

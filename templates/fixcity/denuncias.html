@@ -26,7 +26,7 @@
         <a href="{{ url_for('home') }}" class="btn btn-ghost">Voltar ao inicio</a>
         <a href="{{ url_for('perfil_publico', user_id=current_user.id_usuario) }}" class="btn btn-ghost">Meu perfil</a>
         <a href="{{ url_for('denuncias', aba='feed') }}#notificacoes" class="btn btn-ghost notification-link">
-          Alertas
+          Notificações
           {% if notification_summary.unread_count %}
             <span class="notification-badge">{{ notification_summary.unread_count }}</span>
           {% endif %}

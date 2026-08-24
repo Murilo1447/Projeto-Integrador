@@ -11,6 +11,7 @@ from ..services.location_service import buscar_endereco_por_cep, geocodificar_en
 from ..utils import (
     agora_iso,
     avatar_payload,
+    censurar_email,
     cpf_valido,
     imagem_permitida,
     mapping_get,
@@ -136,12 +137,19 @@ def serialize_call(row: Mapping[str, Any], comments: list[dict], vote_info: Mapp
     coordinates_available = row["latitude"] is not None and row["longitude"] is not None
     prioridade = calcular_prioridade(row["status"], upvotes_count, len(comments), row["criado_em"], coordinates_available)
     foto_chamado = (mapping_get(row, "foto_chamado", "") or "").strip()
+    
+    is_private = bool(mapping_get(row, "is_private", 0))
+    email = row["email"] or ""
+    if is_private and email:
+        email = censurar_email(email)
+
     return {
         "id": row["id"],
         "owner_user_id": mapping_get(row, "id_usuario"),
         "cpf": row["cpf"],
         "nome": row["nome"] or "",
-        "email": row["email"] or "",
+        "email": email,
+        "is_private": is_private,
         "autor_exibicao": autor_exibicao,
         "categoria": row["categoria"],
         "categoria_label": CATEGORIA_LABELS.get(row["categoria"], row["categoria"]),
@@ -596,6 +604,7 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
                 d.cpf,
                 COALESCE(u.nome, d.nome_usuario) AS nome,
                 COALESCE(u.email, d.email_usuario) AS email,
+                u.is_private,
                 u.foto_perfil,
                 u.foto_perfil_blob,
                 u.foto_perfil_mime,
@@ -643,6 +652,7 @@ def listar_chamados(viewer_user_id: int | None = None, sort_mode: str = "recent"
             """
             SELECT
                 c.*,
+                u.is_private,
                 u.foto_perfil,
                 u.foto_perfil_blob,
                 u.foto_perfil_mime
@@ -754,10 +764,17 @@ def obter_perfil_publico(user_id: int, viewer_user_id: int | None = None) -> dic
         if chamado["owner_user_id"] == user_id
     ]
     comentarios = listar_comentarios_usuario(user_id)
+    
+    is_private = bool(mapping_get(user, "is_private", 0))
+    email = user["email"] or ""
+    if is_private and email:
+        email = censurar_email(email)
+
     return {
         "id_usuario": user["id_usuario"],
         "nome": user["nome"],
-        "email": user["email"],
+        "email": email,
+        "is_private": is_private,
         "foto_perfil": user["foto_perfil"],
         **avatar_payload(
             user["nome"],
