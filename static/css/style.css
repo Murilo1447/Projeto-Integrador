@@ -2184,3 +2184,24 @@ body.auth-page {
 body.no-scroll {
   overflow: hidden !important;
 }
+
+/* 1. Garante que o container distribua o espaço corretamente */
+.social-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+/* 2. Força a caixa de texto a expandir e ocupar o espaço vazio */
+.social-hero-copy {
+  flex: 1 !important;
+  max-width: 900px !important; /* Ajuste aqui a largura máxima que deseja */
+  width: 100% !important;
+}
+
+/* 3. Destrava o limite interno do H1 e do parágrafo */
+.social-hero-copy h1,
+.social-hero-copy .hero-description {
+  max-width: 100% !important;
+}
