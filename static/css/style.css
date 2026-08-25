@@ -687,16 +687,16 @@ textarea {
 
 .sugestoes-box {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px); /* Posiciona logo abaixo do input com um pequeno respiro */
   left: 0;
-  right: 0;
-  z-index: 12;
-  display: none;
-  padding: 8px;
-  border-radius: 22px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: var(--shadow-md);
+  width: 100%;
+  z-index: 10000 !important; /* Força a ficar acima do mapa (Leaflet) */
+  background: var(--surface-strong, #ffffff);
+  border: 1px solid var(--line, rgba(27, 51, 38, 0.12));
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); /* Sombra para destacar do mapa */
+  max-height: 300px; /* Limita a altura */
+  overflow-y: auto; /* Adiciona rolagem se tiver muitas sugestões */
 }
 
 .sugestoes-box div {
