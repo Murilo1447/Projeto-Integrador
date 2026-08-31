@@ -45,31 +45,31 @@
                 <span>{{ perfil.avatar_iniciais if perfil.avatar_iniciais else (perfil.nome[0] if perfil.nome else 'U') }}</span>
               {% endif %}
             </div>
-            <div class="profile-meta-info" style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start;">
-              <p class="eyebrow" style="margin: 0;">Morador da comunidade</p>
-              <h1 style="margin: 0; line-height: 1.2;">{{ perfil.nome }}</h1>
-              <p class="hero-description" style="margin: 0; color: #666;">{{ perfil.email }}</p>
+            <div class="profile-meta-info">
+              <p class="eyebrow">Morador da comunidade</p>
+              <h1>{{ perfil.nome }}</h1>
+              <p class="hero-description">{{ perfil.email }}</p>
               
-              <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
+              <div class="profile-status-row">
                 {% if perfil.is_admin %}
                   <span class="priority-badge media">Administrador</span>
                 {% endif %}
 
                 {% if perfil.is_private %}
-                  <span class="priority-badge baixa" style="background: #e9ecef; color: #495057; display: inline-flex; align-items: center; gap: 4px;">
+                  <span class="priority-badge baixa profile-visibility-badge is-private">
                     <i class="bi bi-eye-slash-fill"></i> Perfil Privado
                   </span>
                 {% else %}
-                  <span class="priority-badge baixa" style="background: rgba(25, 135, 84, 0.15); color: #198754; display: inline-flex; align-items: center; gap: 4px;">
+                  <span class="priority-badge baixa profile-visibility-badge is-public">
                     <i class="bi bi-eye-fill"></i> Perfil Público
                   </span>
                 {% endif %}
               </div>
 
               {% if current_user and perfil and current_user.id_usuario == perfil.id_usuario %}
-                <div style="margin-top: 10px;">
+                <div class="profile-privacy-form">
                   <form action="{{ url_for('alternar_privacidade') }}" method="POST">
-                    <button type="submit" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; padding: 6px 12px;">
+                    <button type="submit" class="btn btn-secondary btn-sm profile-privacy-button">
                       {% if perfil.is_private %}
                         <i class="bi bi-eye-fill"></i>
                         <span>Tornar Público</span>
@@ -117,7 +117,7 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Chamados</p>
-            <h2>Publicações de {{ perfil.nome }}</h2>
+            <h2>Publicacoes de {{ perfil.nome }}</h2>
           </div>
         </div>
 

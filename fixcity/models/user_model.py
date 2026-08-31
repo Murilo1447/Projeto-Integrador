@@ -37,7 +37,7 @@ def buscar_usuario_por_id(user_id: int | None):
     query = """
         SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE id_usuario = %s
+        WHERE id_usuario = ?
     """
     return get_db().execute(query, (user_id,)).fetchone()
 
@@ -49,7 +49,7 @@ def buscar_usuario_por_email(email: str):
     query = """
         SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE email = %s
+        WHERE email = ?
     """
     return get_db().execute(query, (email,)).fetchone()
 
@@ -61,7 +61,7 @@ def buscar_usuario_por_cpf(cpf: str):
     query = """
         SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
-        WHERE cpf = %s
+        WHERE cpf = ?
     """
     return get_db().execute(query, (cpf,)).fetchone()
 
@@ -105,7 +105,7 @@ def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
     cursor = db.execute(
         """
         INSERT INTO usuarios (nome, email, senha, telefone, cpf, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime, criado_em)
-        VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
         """,
         (
             data["nome"],
@@ -129,7 +129,7 @@ def alternar_privacidade_usuario(user_id: int) -> bool:
 
     # 1. Busca o status atual garantindo o tipo bool
     row = db.execute(
-        "SELECT is_private FROM usuarios WHERE id_usuario = %s",
+        "SELECT is_private FROM usuarios WHERE id_usuario = ?",
         (user_id,)
     ).fetchone()
 
@@ -143,7 +143,7 @@ def alternar_privacidade_usuario(user_id: int) -> bool:
     # 2. Executa o UPDATE (converte bool para int 1/0 para compatibilidade total com MySQL/MariaDB)
     valor_banco = 1 if novo_status else 0
     db.execute(
-        "UPDATE usuarios SET is_private = %s WHERE id_usuario = %s",
+        "UPDATE usuarios SET is_private = ? WHERE id_usuario = ?",
         (valor_banco, user_id)
     )
 

@@ -110,6 +110,7 @@ def ensure_schema_compatibility(db: DatabaseConnection):
             "usuarios": {
                 "cpf": "ALTER TABLE usuarios ADD COLUMN cpf TEXT DEFAULT ''",
                 "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
+                "is_private": "ALTER TABLE usuarios ADD COLUMN is_private INTEGER NOT NULL DEFAULT 1",
                 "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT DEFAULT ''",
                 "foto_perfil_blob": "ALTER TABLE usuarios ADD COLUMN foto_perfil_blob BLOB",
                 "foto_perfil_mime": "ALTER TABLE usuarios ADD COLUMN foto_perfil_mime TEXT DEFAULT ''",
@@ -137,6 +138,7 @@ def ensure_schema_compatibility(db: DatabaseConnection):
     mysql_migrations = {
         "usuarios": {
             "is_admin": "ALTER TABLE usuarios ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0",
+            "is_private": "ALTER TABLE usuarios ADD COLUMN is_private TINYINT(1) NOT NULL DEFAULT 1",
             "foto_perfil": "ALTER TABLE usuarios ADD COLUMN foto_perfil VARCHAR(255) DEFAULT ''",
             "foto_perfil_blob": "ALTER TABLE usuarios ADD COLUMN foto_perfil_blob LONGBLOB",
             "foto_perfil_mime": "ALTER TABLE usuarios ADD COLUMN foto_perfil_mime VARCHAR(120) DEFAULT ''",
