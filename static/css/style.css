@@ -687,16 +687,16 @@ textarea {
 
 .sugestoes-box {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px); /* Posiciona logo abaixo do input com um pequeno respiro */
   left: 0;
-  right: 0;
-  z-index: 12;
-  display: none;
-  padding: 8px;
-  border-radius: 22px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: var(--shadow-md);
+  width: 100%;
+  z-index: 10000 !important; /* Força a ficar acima do mapa (Leaflet) */
+  background: var(--surface-strong, #ffffff);
+  border: 1px solid var(--line, rgba(27, 51, 38, 0.12));
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); /* Sombra para destacar do mapa */
+  max-height: 300px; /* Limita a altura */
+  overflow-y: auto; /* Adiciona rolagem se tiver muitas sugestões */
 }
 
 .sugestoes-box div {
@@ -1981,4 +1981,227 @@ body.auth-page {
 .auth-brand-panel .brand-lockup span,
 .auth-brand-panel .eyebrow {
   color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ==========================================================================
+   MODAL DE TERMOS DE USO E PRIVACIDADE (FIXCITY)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 27, 20, 0.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.modal-content {
+  background: var(--surface-strong, #ffffff);
+  border-radius: var(--radius-xl, 24px);
+  width: 100%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(27, 51, 38, 0.08);
+  transform: translateY(0) scale(1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.hidden .modal-content {
+  transform: translateY(20px) scale(0.96);
+}
+
+.modal-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--line, rgba(27, 51, 38, 0.12));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.modal-header h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+  color: var(--ink, #1d2b25);
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 0.82rem;
+  color: var(--muted, #64746d);
+  font-weight: 600;
+}
+
+.fechar-modal {
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--muted, #64746d);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fechar-modal:hover {
+  color: var(--danger, #c94d46);
+  background: rgba(201, 77, 70, 0.08);
+}
+
+/* Corpo com scroll otimizado */
+.modal-body {
+  padding: 28px 32px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Personalização da Scrollbar */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f2;
+  border-radius: 8px;
+}
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(32, 106, 67, 0.3);
+  border-radius: 8px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--primary, #206a43);
+}
+
+.modal-intro {
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--ink, #1d2b25);
+}
+
+.modal-intro-alert {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--primary-soft, #e8f3ec);
+  border: 1px solid rgba(32, 106, 67, 0.15);
+  color: var(--primary-dark, #164c31);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.terms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.terms-section h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  color: var(--primary-dark, #164c31);
+  border-left: 3px solid var(--primary, #206a43);
+  padding-left: 10px;
+  margin-top: 6px;
+}
+
+.terms-section p {
+  color: var(--muted, #64746d);
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+
+.terms-subblock {
+  background: #f8faf8;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(27, 51, 38, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.terms-subblock h4 {
+  font-size: 0.95rem;
+  color: var(--ink, #1d2b25);
+  font-weight: 700;
+}
+
+.terms-subblock p {
+  font-size: 0.9rem;
+}
+
+.modal-footer {
+  padding: 20px 32px;
+  border-top: 1px solid var(--line, rgba(27, 51, 38, 0.12));
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  background: rgba(247, 250, 247, 0.6);
+  border-bottom-left-radius: var(--radius-xl, 24px);
+  border-bottom-right-radius: var(--radius-xl, 24px);
+}
+
+/* Adaptações para celular */
+@media (max-width: 600px) {
+  .modal-content {
+    max-height: 90vh;
+  }
+  .modal-header, .modal-body, .modal-footer {
+    padding: 20px;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .modal-footer .btn {
+    width: 100%;
+  }
+}
+
+/* Bloqueia a rolagem da página principal */
+body.no-scroll {
+  overflow: hidden !important;
+}
+
+/* 1. Garante que o container distribua o espaço corretamente */
+.social-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+/* 2. Força a caixa de texto a expandir e ocupar o espaço vazio */
+.social-hero-copy {
+  flex: 1 !important;
+  max-width: 900px !important; /* Ajuste aqui a largura máxima que deseja */
+  width: 100% !important;
+}
+
+/* 3. Destrava o limite interno do H1 e do parágrafo */
+.social-hero-copy h1,
+.social-hero-copy .hero-description {
+  max-width: 100% !important;
 }

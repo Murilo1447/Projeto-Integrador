@@ -608,3 +608,45 @@ document.addEventListener("DOMContentLoaded", function() {
     ultimoScroll = Math.max(scrollAtual, 0); 
   });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('termos-modal');
+  const btnAceitar = document.getElementById('aceitar-termos');
+  const btnRecusar = document.getElementById('recusar-termos');
+  const btnFechar = document.getElementById('fechar-termos');
+
+  // Função para ABRIR o modal e TRAVAR a rolagem da página
+  const abrirModal = () => {
+    modal.classList.remove('hidden');
+    document.body.classList.add('no-scroll'); // Trava o fundo
+  };
+
+  // Função para FECHAR o modal e DESTRAVAR a rolagem da página
+  const fecharModal = () => {
+    modal.classList.add('hidden');
+    document.body.classList.remove('no-scroll'); // Destrava o fundo
+  };
+
+  // Verifica se o usuário já aceitou estes termos no passado
+  const termosAceitos = localStorage.getItem('fixcity_termos_aceitos_v1');
+
+  if (!termosAceitos) {
+    abrirModal();
+  }
+
+  // Ao clicar em Aceitar
+  btnAceitar.addEventListener('click', () => {
+    localStorage.setItem('fixcity_termos_aceitos_v1', 'true');
+    fecharModal();
+  });
+
+  // Ao clicar em Recusar
+  btnRecusar.addEventListener('click', () => {
+    alert('Para registrar chamados e utilizar os recursos comunitários do FixCity, é necessário aceitar os Termos de Uso.');
+  });
+
+  // Ao clicar no "X" (se mantiver o botão)
+  if (btnFechar) {
+    btnFechar.addEventListener('click', fecharModal);
+  }
+});
