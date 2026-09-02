@@ -38,21 +38,35 @@ O SQLite continua sendo o backend padrao.
 
 O administrador e uma conta comum com a permissao `is_admin` ativada. Primeiro,
 inicie a aplicacao e cadastre a conta pela pagina `/cadastro/`. Depois, pare a
-aplicacao e execute este comando na raiz do projeto:
+aplicacao e execute o comando correspondente ao seu sistema na raiz do projeto.
+
+No Windows com PowerShell:
 
 ```powershell
 .\venv\Scripts\python.exe -m flask --app app tornar-admin admin@exemplo.com
+```
+
+No Linux ou no console Bash do PythonAnywhere, com o ambiente virtual dentro do
+projeto:
+
+```bash
+./venv/bin/python -m flask --app app tornar-admin 'admin@exemplo.com'
 ```
 
 Substitua `admin@exemplo.com` pelo e-mail usado no cadastro. O comando utiliza o
 backend configurado nas variaveis de ambiente (`sqlite` ou `mysql`). Ao entrar
 novamente nessa conta, o botao **Admin** dara acesso ao painel em `/admin/`.
 
-Se o ambiente virtual ja estiver ativo, use a forma abreviada:
+Se o ambiente virtual ja estiver ativo, tanto no Windows quanto no Linux, use a
+forma abreviada:
 
-```powershell
-flask --app app tornar-admin admin@exemplo.com
+```bash
+python -m flask --app app tornar-admin 'admin@exemplo.com'
 ```
+
+No PythonAnywhere, confirme que o terminal usa o mesmo ambiente virtual e as
+mesmas variaveis de banco da aplicacao web. Um ambiente virtual criado no Windows
+nao funciona no Linux e precisa ser recriado no servidor.
 
 ## Como conectar com MySQL Workbench
 
