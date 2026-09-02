@@ -21,6 +21,7 @@ from .utils import (
     mapping_get,
     normalize_next_url,
     user_is_admin,
+    user_is_superuser,
 )
 
 
@@ -29,6 +30,8 @@ def load_logged_in_user():
     user = buscar_usuario_por_id(user_id) if user_id else None
     if user:
         user = dict(user) if not isinstance(user, dict) else user
+        user["is_admin"] = user_is_admin(user)
+        user["is_superuser"] = user_is_superuser(user)
         user.update(
             avatar_payload(
                 user["nome"],
@@ -87,6 +90,20 @@ def admin_required(view):
             return redirect(url_for("login", next=login_redirect_target()))
         if not user_is_admin(g.user):
             flash("Acesso restrito ao painel administrativo.", "error")
+            return redirect(url_for("home"))
+        return view(*args, **kwargs)
+
+    return wrapped_view
+
+
+def superuser_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if g.user is None:
+            flash("Faca login para continuar.", "error")
+            return redirect(url_for("login", next=login_redirect_target()))
+        if not user_is_superuser(g.user):
+            flash("Esta acao e exclusiva para superusers.", "error")
             return redirect(url_for("home"))
         return view(*args, **kwargs)
 

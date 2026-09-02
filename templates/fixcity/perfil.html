@@ -26,7 +26,9 @@
         <a href="{{ url_for('home') }}" class="btn btn-ghost">Início</a>
         <a href="{{ url_for('mapa_ao_vivo') }}" class="btn btn-ghost">Mapa</a>
         <a href="{{ url_for('denuncias', aba='feed') if current_user else url_for('login', next=url_for('denuncias', aba='feed')) }}" class="btn btn-secondary">Feed</a>
-        {% if current_user and current_user.is_admin %}
+        {% if current_user and current_user.is_superuser %}
+          <a href="{{ url_for('dashboard_superuser') }}" class="btn btn-ghost">Superuser</a>
+        {% elif current_user and current_user.is_admin %}
           <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
         {% endif %}
       </nav>
@@ -51,7 +53,9 @@
               <p class="hero-description">{{ perfil.email }}</p>
               
               <div class="profile-status-row">
-                {% if perfil.is_admin %}
+                {% if perfil.is_superuser %}
+                  <span class="priority-badge alta">Superuser</span>
+                {% elif perfil.is_admin %}
                   <span class="priority-badge media">Administrador</span>
                 {% endif %}
 

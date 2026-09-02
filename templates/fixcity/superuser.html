@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superuser - FixCity</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="site-shell social-page">
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{{ url_for('dashboard_superuser') }}" class="brand-lockup">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo FixCity" class="logo">
+        <div>
+          <strong>FixCity</strong>
+          <span>Administracao do sistema</span>
+        </div>
+      </a>
+      <nav class="nav-actions">
+        <a href="#usuarios" class="btn btn-ghost">Contas</a>
+        <a href="#publicacoes" class="btn btn-ghost">Publicacoes</a>
+        <a href="#comentarios" class="btn btn-ghost">Comentarios</a>
+        <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary">Painel admin</a>
+        <a href="{{ url_for('home') }}" class="btn btn-primary">Voltar ao site</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="social-shell superuser-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-wrapper">
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="mensagem {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <section class="social-hero section-shell">
+      <div class="social-hero-copy" data-reveal>
+        <p class="eyebrow">Superuser</p>
+        <h1>Administracao completa do FixCity.</h1>
+        <p class="hero-description">
+          Consulte todos os registros, gerencie niveis de acesso e modere o conteudo da plataforma.
+        </p>
+      </div>
+    </section>
+
+    <section class="section-shell">
+      <div class="stats-grid superuser-stats">
+        <article class="stat-card neutral"><span>Contas</span><strong>{{ dashboard.stats.usuarios }}</strong><p>usuarios cadastrados</p></article>
+        <article class="stat-card warning"><span>Admins</span><strong>{{ dashboard.stats.admins }}</strong><p>incluindo superusers</p></article>
+        <article class="stat-card danger"><span>Superusers</span><strong>{{ dashboard.stats.superusers }}</strong><p>acesso total</p></article>
+        <article class="stat-card success"><span>Publicacoes</span><strong>{{ dashboard.stats.chamados }}</strong><p>registros no site</p></article>
+        <article class="stat-card neutral"><span>Comentarios</span><strong>{{ dashboard.stats.comentarios }}</strong><p>mensagens publicadas</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell superuser-section" id="usuarios">
+      <div class="section-heading">
+        <div><p class="eyebrow">Autenticacao</p><h2>Todas as contas</h2></div>
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>Conta</th><th>Contato</th><th>CPF</th><th>Cadastro</th><th>Privacidade</th><th>Nivel</th><th>Acoes</th></tr></thead>
+          <tbody>
+            {% for usuario in dashboard.usuarios %}
+              <tr>
+                <td>#{{ usuario.id_usuario }}</td>
+                <td><strong>{{ usuario.nome }}</strong><small>{{ usuario.email }}</small></td>
+                <td>{{ usuario.telefone }}</td>
+                <td>{{ usuario.cpf }}</td>
+                <td>{{ usuario.criado_em }}</td>
+                <td>{{ "Privado" if usuario.is_private else "Publico" }}</td>
+                <td>
+                  {% if usuario.is_superuser %}<span class="priority-badge alta">Superuser</span>
+                  {% elif usuario.is_admin %}<span class="priority-badge media">Admin</span>
+                  {% else %}<span class="priority-badge baixa">Usuario</span>{% endif %}
+                </td>
+                <td>
+                  {% if usuario.id_usuario == current_user.id_usuario %}
+                    <span class="helper-copy">Sua conta (protegida)</span>
+                  {% else %}
+                    <div class="admin-row-actions">
+                      <form method="post" action="{{ url_for('alterar_nivel_usuario_superuser', user_id=usuario.id_usuario) }}">
+                        <label class="sr-only" for="nivel-{{ usuario.id_usuario }}">Nivel de {{ usuario.nome }}</label>
+                        <select id="nivel-{{ usuario.id_usuario }}" name="nivel">
+                          <option value="usuario" {% if not usuario.is_admin and not usuario.is_superuser %}selected{% endif %}>Usuario</option>
+                          <option value="admin" {% if usuario.is_admin and not usuario.is_superuser %}selected{% endif %}>Admin</option>
+                          <option value="superuser" {% if usuario.is_superuser %}selected{% endif %}>Superuser</option>
+                        </select>
+                        <button type="submit" class="btn btn-secondary">Salvar nivel</button>
+                      </form>
+                      <form method="post" action="{{ url_for('excluir_usuario_superuser', user_id=usuario.id_usuario) }}" onsubmit="return confirm('Excluir esta conta permanentemente?');">
+                        <button type="submit" class="btn btn-danger">Excluir conta</button>
+                      </form>
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="8">Nenhuma conta cadastrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-shell superuser-section" id="publicacoes">
+      <div class="section-heading">
+        <div><p class="eyebrow">Conteudo</p><h2>Todas as publicacoes</h2></div>
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>Autor</th><th>Publicacao</th><th>Local</th><th>Status</th><th>Acoes</th></tr></thead>
+          <tbody>
+            {% for chamado in dashboard.chamados %}
+              <tr>
+                <td>#{{ chamado.id }}</td>
+                <td>{{ chamado.autor_exibicao }}</td>
+                <td><strong>{{ chamado.categoria_label }}</strong><small>{{ chamado.descricao }}</small></td>
+                <td>{{ chamado.endereco_completo }}</td>
+                <td><span class="status-badge {{ chamado.status_css }}">{{ chamado.status_label }}</span></td>
+                <td>
+                  <div class="admin-row-actions">
+                    <form method="post" action="{{ url_for('atualizar_status_superuser', pk=chamado.id) }}">
+                      <label class="sr-only" for="status-super-{{ chamado.id }}">Status</label>
+                      <select id="status-super-{{ chamado.id }}" name="status">
+                        {% for value, label in status_choices %}<option value="{{ value }}" {% if chamado.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-secondary">Salvar status</button>
+                    </form>
+                    <form method="post" action="{{ url_for('excluir_chamado_superuser', pk=chamado.id) }}" onsubmit="return confirm('Excluir esta publicacao permanentemente?');">
+                      <input type="hidden" name="next" value="{{ url_for('dashboard_superuser', _anchor='publicacoes') }}">
+                      <button type="submit" class="btn btn-danger">Excluir</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6">Nenhuma publicacao cadastrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-shell superuser-section" id="comentarios">
+      <div class="section-heading">
+        <div><p class="eyebrow">Moderacao</p><h2>Todos os comentarios</h2></div>
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>Publicacao</th><th>Autor</th><th>Comentario</th><th>Acoes</th></tr></thead>
+          <tbody>
+            {% for comentario in dashboard.comentarios %}
+              <tr>
+                <td>#{{ comentario.id }}</td>
+                <td>#{{ comentario.chamado_id }}</td>
+                <td>{{ comentario.autor_exibicao }}</td>
+                <td>{{ comentario.texto }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('excluir_comentario_admin', comment_id=comentario.id) }}" onsubmit="return confirm('Excluir este comentario permanentemente?');">
+                    <input type="hidden" name="next" value="{{ url_for('dashboard_superuser', _anchor='comentarios') }}">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5">Nenhum comentario cadastrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/denuncias-feed.js') }}"></script>
+</body>
+</html>

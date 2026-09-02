@@ -20,7 +20,7 @@ from ..utils import (
     user_is_admin,
 )
 from .notification_model import criar_notificacao
-from .user_model import buscar_usuario_por_id
+from .user_model import buscar_usuario_por_id, listar_usuarios_painel
 
 BRAZIL_STATE_REGIONS = {
     "AC": "Norte",
@@ -783,6 +783,7 @@ def obter_perfil_publico(user_id: int, viewer_user_id: int | None = None) -> dic
             has_blob=bool(mapping_get(user, "foto_perfil_blob")),
         ),
         "is_admin": bool(mapping_get(user, "is_admin", 0)),
+        "is_superuser": bool(mapping_get(user, "is_superuser", 0)),
         "chamados": chamados[:6],
         "comentarios": comentarios,
         "total_chamados": len(chamados),
@@ -845,6 +846,38 @@ def remover_comentario(comment_id: int):
     else:
         db.execute("DELETE FROM comentarios WHERE id = ?", (comment_id,))
     db.commit()
+
+
+def remover_chamado(pk: int) -> bool:
+    db = get_db()
+    if mysql_enabled():
+        chamado = db.execute(
+            "SELECT id_endereco FROM denuncias WHERE id_denuncia = ?",
+            (pk,),
+        ).fetchone()
+        if not chamado:
+            return False
+
+        endereco_id = chamado["id_endereco"]
+        db.execute("DELETE FROM denuncias WHERE id_denuncia = ?", (pk,))
+        db.execute(
+            """
+            DELETE FROM endereco
+            WHERE id_endereco = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM denuncias WHERE id_endereco = ?
+              )
+            """,
+            (endereco_id, endereco_id),
+        )
+    else:
+        chamado = db.execute("SELECT 1 FROM chamados WHERE id = ?", (pk,)).fetchone()
+        if not chamado:
+            return False
+        db.execute("DELETE FROM chamados WHERE id = ?", (pk,))
+
+    db.commit()
+    return True
 
 
 def listar_usuarios_mais_ativos(limit: int = 6) -> list[dict]:
@@ -924,6 +957,24 @@ def montar_dashboard_admin() -> dict:
         "chamados_prioritarios": chamados[:8],
         "comentarios_recentes": listar_comentarios_recentes(),
         "usuarios_ativos": listar_usuarios_mais_ativos(),
+    }
+
+
+def montar_dashboard_superuser() -> dict:
+    chamados = listar_chamados(sort_mode="recent")
+    comentarios = listar_comentarios_recentes(limit=2_147_483_647)
+    usuarios = listar_usuarios_painel()
+    return {
+        "stats": {
+            "usuarios": len(usuarios),
+            "admins": sum(1 for usuario in usuarios if usuario["is_admin"]),
+            "superusers": sum(1 for usuario in usuarios if usuario["is_superuser"]),
+            "chamados": len(chamados),
+            "comentarios": len(comentarios),
+        },
+        "usuarios": usuarios,
+        "chamados": chamados,
+        "comentarios": comentarios,
     }
 
 

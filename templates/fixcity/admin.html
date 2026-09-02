@@ -100,6 +100,15 @@
                   <span>{{ chamado.endereco_completo }}</span>
                   <span>{{ chamado.upvotes_label }}</span>
                 </div>
+                {% if current_user.is_superuser %}
+                  <form
+                    method="post"
+                    action="{{ url_for('excluir_chamado_superuser', pk=chamado.id) }}"
+                    onsubmit="return confirm('Excluir esta publicacao permanentemente?');"
+                  >
+                    <button type="submit" class="btn btn-danger">Excluir publicacao</button>
+                  </form>
+                {% endif %}
               </article>
             {% endfor %}
           </div>

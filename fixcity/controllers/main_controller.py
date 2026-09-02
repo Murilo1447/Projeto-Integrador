@@ -1,6 +1,6 @@
 from flask import flash, redirect, render_template, request, url_for
 
-from ..auth import admin_required, login_required
+from ..auth import admin_required, login_required, superuser_required
 from ..config import CATEGORIAS, STATUS_CHOICES, STATUS_LABELS
 from ..models.call_model import (
     LOCATION_FILTER_CHOICES,
@@ -15,9 +15,11 @@ from ..models.call_model import (
     listar_chamados,
     listar_comentarios_recentes,
     montar_dashboard_admin,
+    montar_dashboard_superuser,
     normalizar_formulario,
     obter_perfil_publico,
     preparar_localizacao,
+    remover_chamado,
     remover_comentario,
     salvar_chamado,
     salvar_foto_chamado,
@@ -25,7 +27,11 @@ from ..models.call_model import (
     validar_chamado,
 )
 from ..models.notification_model import criar_notificacao, marcar_notificacoes_como_lidas
-from ..models.user_model import alternar_privacidade_usuario
+from ..models.user_model import (
+    alternar_privacidade_usuario,
+    atualizar_nivel_usuario,
+    excluir_usuario,
+)
 from ..utils import censurar_email, current_user, normalize_next_url
 
 
@@ -227,7 +233,80 @@ def dashboard_admin():
 def excluir_comentario_admin(comment_id: int):
     remover_comentario(comment_id)
     flash("Comentario removido pelo painel administrativo.", "success")
-    return redirect(url_for("dashboard_admin"))
+    destino = request.form.get("next")
+    return redirect(normalize_next_url(destino) if destino else url_for("dashboard_admin"))
+
+
+@superuser_required
+def dashboard_superuser():
+    return render_template(
+        "fixcity/superuser.html",
+        dashboard=montar_dashboard_superuser(),
+        status_choices=STATUS_CHOICES,
+    )
+
+
+@superuser_required
+def alterar_nivel_usuario_superuser(user_id: int):
+    resultado = atualizar_nivel_usuario(
+        user_id,
+        (request.form.get("nivel") or "").strip().lower(),
+        current_user()["id_usuario"],
+    )
+    mensagens = {
+        "atualizado": ("Nivel de acesso atualizado.", "success"),
+        "propria_conta": ("Voce nao pode alterar o nivel da propria conta.", "error"),
+        "nivel_invalido": ("Nivel de acesso invalido.", "error"),
+        "nao_encontrado": ("Usuario nao encontrado.", "error"),
+    }
+    mensagem, categoria = mensagens[resultado]
+    flash(mensagem, categoria)
+    return redirect(url_for("dashboard_superuser", _anchor="usuarios"))
+
+
+@superuser_required
+def excluir_usuario_superuser(user_id: int):
+    resultado = excluir_usuario(user_id, current_user()["id_usuario"])
+    mensagens = {
+        "excluido": ("Conta excluida.", "success"),
+        "propria_conta": ("Voce nao pode excluir a propria conta.", "error"),
+        "nao_encontrado": ("Usuario nao encontrado.", "error"),
+    }
+    mensagem, categoria = mensagens[resultado]
+    flash(mensagem, categoria)
+    return redirect(url_for("dashboard_superuser", _anchor="usuarios"))
+
+
+@superuser_required
+def atualizar_status_superuser(pk: int):
+    status = (request.form.get("status") or "").strip().upper()
+    if status not in STATUS_LABELS:
+        flash("Status invalido.", "error")
+        return redirect(url_for("dashboard_superuser", _anchor="publicacoes"))
+
+    user = current_user()
+    owner_user_id = atualizar_status_chamado(pk, status)
+    if owner_user_id and owner_user_id != user["id_usuario"]:
+        criar_notificacao(
+            destinatario_usuario_id=owner_user_id,
+            ator_usuario_id=user["id_usuario"],
+            chamado_id=pk,
+            tipo="status",
+            titulo="Status atualizado",
+            mensagem=f'{user["nome"]} atualizou o status da sua denuncia para {STATUS_LABELS[status]}.',
+        )
+    flash("Status da publicacao atualizado.", "success")
+    return redirect(url_for("dashboard_superuser", _anchor="publicacoes"))
+
+
+@superuser_required
+def excluir_chamado_superuser(pk: int):
+    if remover_chamado(pk):
+        flash("Publicacao excluida pelo superuser.", "success")
+    else:
+        flash("Publicacao nao encontrada.", "error")
+    destino = request.form.get("next")
+    return redirect(normalize_next_url(destino) if destino else url_for("denuncias", aba="feed"))
 
 
 def register_main_routes(app):
@@ -241,6 +320,7 @@ def register_main_routes(app):
         endpoint="alternar_privacidade",
     )
     app.add_url_rule("/admin/", view_func=dashboard_admin, endpoint="dashboard_admin")
+    app.add_url_rule("/superuser/", view_func=dashboard_superuser, endpoint="dashboard_superuser")
     app.add_url_rule("/denuncias/", view_func=denuncias, methods=["GET", "POST"], endpoint="denuncias")
     app.add_url_rule(
         "/notificacoes/marcar-lidas/",
@@ -271,4 +351,28 @@ def register_main_routes(app):
         view_func=excluir_comentario_admin,
         methods=["POST"],
         endpoint="excluir_comentario_admin",
+    )
+    app.add_url_rule(
+        "/superuser/denuncias/<int:pk>/excluir/",
+        view_func=excluir_chamado_superuser,
+        methods=["POST"],
+        endpoint="excluir_chamado_superuser",
+    )
+    app.add_url_rule(
+        "/superuser/denuncias/<int:pk>/status/",
+        view_func=atualizar_status_superuser,
+        methods=["POST"],
+        endpoint="atualizar_status_superuser",
+    )
+    app.add_url_rule(
+        "/superuser/usuarios/<int:user_id>/nivel/",
+        view_func=alterar_nivel_usuario_superuser,
+        methods=["POST"],
+        endpoint="alterar_nivel_usuario_superuser",
+    )
+    app.add_url_rule(
+        "/superuser/usuarios/<int:user_id>/excluir/",
+        view_func=excluir_usuario_superuser,
+        methods=["POST"],
+        endpoint="excluir_usuario_superuser",
     )

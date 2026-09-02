@@ -31,7 +31,9 @@
             <span class="notification-badge">{{ notification_summary.unread_count }}</span>
           {% endif %}
         </a>
-        {% if current_user.is_admin %}
+        {% if current_user.is_superuser %}
+          <a href="{{ url_for('dashboard_superuser') }}" class="btn btn-ghost">Superuser</a>
+        {% elif current_user.is_admin %}
           <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
         {% endif %}
         <div class="user-pill">
@@ -316,6 +318,16 @@
                         </select>
                       </div>
                       <button type="submit" class="btn btn-secondary">Salvar status</button>
+                    </form>
+                  {% endif %}
+
+                  {% if current_user.is_superuser %}
+                    <form
+                      method="post"
+                      action="{{ url_for('excluir_chamado_superuser', pk=chamado.id) }}"
+                      onsubmit="return confirm('Excluir esta publicacao permanentemente?');"
+                    >
+                      <button type="submit" class="btn btn-danger">Excluir publicacao</button>
                     </form>
                   {% endif %}
 

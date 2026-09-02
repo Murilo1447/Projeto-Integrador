@@ -68,6 +68,30 @@ No PythonAnywhere, confirme que o terminal usa o mesmo ambiente virtual e as
 mesmas variaveis de banco da aplicacao web. Um ambiente virtual criado no Windows
 nao funciona no Linux e precisa ser recriado no servidor.
 
+## Criar um superuser
+
+O superuser herda o acesso de administrador e tambem pode executar acoes globais
+destrutivas, como excluir publicacoes de qualquer conta. Cadastre primeiro uma
+conta comum e promova o e-mail com:
+
+```powershell
+.\venv\Scripts\python.exe -m flask --app app tornar-superuser superuser@exemplo.com
+```
+
+No Linux ou no Bash do PythonAnywhere, com o ambiente virtual ativo:
+
+```bash
+python -m flask --app app tornar-superuser 'superuser@exemplo.com'
+```
+
+Depois do login, acesse `/superuser/` ou use o botao **Superuser** no cabecalho.
+O painel permite consultar todas as contas, trocar niveis de acesso, excluir
+contas, alterar o status ou excluir publicacoes e remover comentarios. Por
+seguranca, a conta atualmente conectada nao pode excluir ou rebaixar a si mesma.
+
+Conceda esse nivel apenas a pessoas de confianca. A exclusao de publicacoes e
+permanente e remove tambem os comentarios, apoios e notificacoes relacionados.
+
 ## Como conectar com MySQL Workbench
 
 1. Abra o MySQL Workbench e execute o script `database/fixcity_mysql.sql`.

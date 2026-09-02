@@ -115,6 +115,122 @@ class FixCityFlaskTests(unittest.TestCase):
             usuario = buscar_usuario_por_email("admin@example.com")
             self.assertEqual(usuario["is_admin"], 1)
 
+    def test_superuser_herda_admin_e_pode_excluir_publicacao(self):
+        self.cadastrar_usuario(
+            nome="Maria da Silva",
+            cpf="52998224725",
+            email="maria@example.com",
+        )
+        self.criar_chamado_autenticado()
+        self.client.post("/logout/", follow_redirects=True)
+
+        self.cadastrar_usuario(
+            nome="Joao Pereira",
+            cpf="11144477735",
+            email="joao@example.com",
+        )
+        self.client.post(
+            "/denuncias/1/comentarios/",
+            data={"texto": "Comentario que sera removido."},
+            follow_redirects=True,
+        )
+        self.client.post("/denuncias/1/upvote/", follow_redirects=True)
+
+        with self.app.app_context():
+            db = get_db()
+            db.execute(
+                "UPDATE usuarios SET is_admin = 1 WHERE email = ?",
+                ("joao@example.com",),
+            )
+            db.commit()
+
+        acesso_negado = self.client.post(
+            "/superuser/denuncias/1/excluir/",
+            follow_redirects=True,
+        )
+        self.assertIn(b"Esta acao e exclusiva para superusers.", acesso_negado.data)
+        painel_negado = self.client.get("/superuser/", follow_redirects=True)
+        self.assertIn(b"Esta acao e exclusiva para superusers.", painel_negado.data)
+        with self.app.app_context():
+            chamado = get_db().execute("SELECT 1 FROM chamados WHERE id = 1").fetchone()
+            self.assertIsNotNone(chamado)
+
+        resultado = self.app.test_cli_runner().invoke(
+            args=["tornar-superuser", "JOAO@example.com"]
+        )
+        self.assertEqual(resultado.exit_code, 0)
+        self.assertIn("agora e superuser", resultado.output)
+
+        painel = self.client.get("/superuser/")
+        self.assertEqual(painel.status_code, 200)
+        self.assertIn(b"Administracao completa do FixCity", painel.data)
+        self.assertIn(b"maria@example.com", painel.data)
+        self.assertIn(b"joao@example.com", painel.data)
+        self.assertIn(b"Comentario que sera removido.", painel.data)
+
+        nivel_admin = self.client.post(
+            "/superuser/usuarios/1/nivel/",
+            data={"nivel": "admin"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Nivel de acesso atualizado.", nivel_admin.data)
+        with self.app.app_context():
+            maria = buscar_usuario_por_email("maria@example.com")
+            self.assertEqual(maria["is_admin"], 1)
+            self.assertEqual(maria["is_superuser"], 0)
+
+        nivel_usuario = self.client.post(
+            "/superuser/usuarios/1/nivel/",
+            data={"nivel": "usuario"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Nivel de acesso atualizado.", nivel_usuario.data)
+        with self.app.app_context():
+            maria = buscar_usuario_por_email("maria@example.com")
+            self.assertEqual(maria["is_admin"], 0)
+            self.assertEqual(maria["is_superuser"], 0)
+
+        autoprotecao = self.client.post(
+            "/superuser/usuarios/2/nivel/",
+            data={"nivel": "usuario"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Voce nao pode alterar o nivel da propria conta.", autoprotecao.data)
+
+        status = self.client.post(
+            "/superuser/denuncias/1/status/",
+            data={"status": "RESOLVIDO"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Status da publicacao atualizado.", status.data)
+
+        feed = self.client.get("/denuncias/?aba=feed")
+        self.assertIn(b"Excluir publicacao", feed.data)
+
+        exclusao = self.client.post(
+            "/superuser/denuncias/1/excluir/",
+            follow_redirects=True,
+        )
+        self.assertIn(b"Publicacao excluida pelo superuser.", exclusao.data)
+
+        with self.app.app_context():
+            db = get_db()
+            usuario = buscar_usuario_por_email("joao@example.com")
+            self.assertEqual(usuario["is_admin"], 1)
+            self.assertEqual(usuario["is_superuser"], 1)
+            self.assertIsNone(db.execute("SELECT 1 FROM chamados WHERE id = 1").fetchone())
+            self.assertEqual(db.execute("SELECT COUNT(*) AS total FROM comentarios").fetchone()["total"], 0)
+            self.assertEqual(db.execute("SELECT COUNT(*) AS total FROM upvotes_chamado").fetchone()["total"], 0)
+            self.assertEqual(db.execute("SELECT COUNT(*) AS total FROM notificacoes").fetchone()["total"], 0)
+
+        exclusao_conta = self.client.post(
+            "/superuser/usuarios/1/excluir/",
+            follow_redirects=True,
+        )
+        self.assertIn(b"Conta excluida.", exclusao_conta.data)
+        with self.app.app_context():
+            self.assertIsNone(buscar_usuario_por_email("maria@example.com"))
+
     def test_alternar_privacidade_atualiza_banco_e_perfil(self):
         self.cadastrar_usuario()
 

@@ -144,7 +144,11 @@ def current_user():
 
 
 def user_is_admin(user) -> bool:
-    return bool(mapping_get(user, "is_admin", 0))
+    return bool(mapping_get(user, "is_admin", 0) or user_is_superuser(user))
+
+
+def user_is_superuser(user) -> bool:
+    return bool(mapping_get(user, "is_superuser", 0))
 
 
 def login_redirect_target():

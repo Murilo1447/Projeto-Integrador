@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     telefone VARCHAR(20) NOT NULL,
     cpf VARCHAR(14) NOT NULL,
     is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    is_superuser TINYINT(1) NOT NULL DEFAULT 0,
     is_private TINYINT(1) NOT NULL DEFAULT 1,
     foto_perfil VARCHAR(255) DEFAULT '',
     criado_em VARCHAR(40) NOT NULL,

@@ -35,7 +35,7 @@ def buscar_usuario_por_id(user_id: int | None):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_superuser, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
         WHERE id_usuario = ?
     """
@@ -47,7 +47,7 @@ def buscar_usuario_por_email(email: str):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_superuser, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
         WHERE email = ?
     """
@@ -59,7 +59,7 @@ def buscar_usuario_por_cpf(cpf: str):
         return None
 
     query = """
-        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
+        SELECT id_usuario, nome, email, senha, telefone, cpf, is_admin, is_superuser, is_private, foto_perfil, foto_perfil_blob, foto_perfil_mime
         FROM usuarios
         WHERE cpf = ?
     """
@@ -136,6 +136,87 @@ def tornar_usuario_admin(email: str) -> bool:
     )
     db.commit()
     return True
+
+
+def tornar_usuario_superuser(email: str) -> bool:
+    usuario = buscar_usuario_por_email(email.strip().lower())
+    if not usuario:
+        return False
+
+    db = get_db()
+    db.execute(
+        "UPDATE usuarios SET is_admin = 1, is_superuser = 1 WHERE id_usuario = ?",
+        (usuario["id_usuario"],),
+    )
+    db.commit()
+    return True
+
+
+def listar_usuarios_painel() -> list[dict]:
+    rows = get_db().execute(
+        """
+        SELECT
+            id_usuario,
+            nome,
+            email,
+            telefone,
+            cpf,
+            is_admin,
+            is_superuser,
+            is_private,
+            criado_em
+        FROM usuarios
+        ORDER BY id_usuario ASC
+        """
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def atualizar_nivel_usuario(user_id: int, nivel: str, ator_user_id: int) -> str:
+    niveis = {
+        "usuario": (0, 0),
+        "admin": (1, 0),
+        "superuser": (1, 1),
+    }
+    if nivel not in niveis:
+        return "nivel_invalido"
+    if user_id == ator_user_id:
+        return "propria_conta"
+
+    db = get_db()
+    if not db.execute(
+        "SELECT 1 FROM usuarios WHERE id_usuario = ?",
+        (user_id,),
+    ).fetchone():
+        return "nao_encontrado"
+
+    is_admin, is_superuser = niveis[nivel]
+    db.execute(
+        """
+        UPDATE usuarios
+        SET is_admin = ?, is_superuser = ?
+        WHERE id_usuario = ?
+        """,
+        (is_admin, is_superuser, user_id),
+    )
+    db.commit()
+    return "atualizado"
+
+
+def excluir_usuario(user_id: int, ator_user_id: int) -> str:
+    if user_id == ator_user_id:
+        return "propria_conta"
+
+    db = get_db()
+    if not db.execute(
+        "SELECT 1 FROM usuarios WHERE id_usuario = ?",
+        (user_id,),
+    ).fetchone():
+        return "nao_encontrado"
+
+    db.execute("DELETE FROM usuarios WHERE id_usuario = ?", (user_id,))
+    db.commit()
+    return "excluido"
 
 
 def alternar_privacidade_usuario(user_id: int) -> bool | None:

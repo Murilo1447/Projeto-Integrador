@@ -41,7 +41,9 @@
               <span class="notification-badge">{{ notification_summary.unread_count }}</span>
             {% endif %}
           </a>
-          {% if current_user.is_admin %}
+          {% if current_user.is_superuser %}
+            <a href="{{ url_for('dashboard_superuser') }}" class="btn btn-ghost">Superuser</a>
+          {% elif current_user.is_admin %}
             <a href="{{ url_for('dashboard_admin') }}" class="btn btn-ghost">Admin</a>
           {% endif %}
           <a href="{{ filtered_feed_url }}" class="btn btn-ghost">Feed</a>
