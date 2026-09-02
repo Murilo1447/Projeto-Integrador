@@ -102,6 +102,45 @@ class FixCityFlaskTests(unittest.TestCase):
         self.assertIn(b"Rua A", response.data)
         self.assertIn(b"Maria da Silva", response.data)
 
+    def test_comando_tornar_admin_promove_conta_existente(self):
+        self.cadastrar_usuario(email="admin@example.com")
+
+        resultado = self.app.test_cli_runner().invoke(
+            args=["tornar-admin", "ADMIN@example.com"]
+        )
+
+        self.assertEqual(resultado.exit_code, 0)
+        self.assertIn("agora e administradora", resultado.output)
+        with self.app.app_context():
+            usuario = buscar_usuario_por_email("admin@example.com")
+            self.assertEqual(usuario["is_admin"], 1)
+
+    def test_alternar_privacidade_atualiza_banco_e_perfil(self):
+        self.cadastrar_usuario()
+
+        perfil_privado = self.client.get("/usuarios/1/")
+        self.assertIn("Perfil Privado", perfil_privado.get_data(as_text=True))
+
+        perfil_publico = self.client.post(
+            "/perfil/alternar-privacidade/",
+            follow_redirects=True,
+        )
+        self.assertEqual(perfil_publico.status_code, 200)
+        self.assertIn("Perfil Público", perfil_publico.get_data(as_text=True))
+        with self.app.app_context():
+            usuario = buscar_usuario_por_email("maria@example.com")
+            self.assertEqual(usuario["is_private"], 0)
+
+        perfil_privado_novamente = self.client.post(
+            "/perfil/alternar-privacidade/",
+            follow_redirects=True,
+        )
+        self.assertEqual(perfil_privado_novamente.status_code, 200)
+        self.assertIn("Perfil Privado", perfil_privado_novamente.get_data(as_text=True))
+        with self.app.app_context():
+            usuario = buscar_usuario_por_email("maria@example.com")
+            self.assertEqual(usuario["is_private"], 1)
+
     def test_login_funciona_apos_logout(self):
         self.cadastrar_usuario()
         self.client.post("/logout/", follow_redirects=True)

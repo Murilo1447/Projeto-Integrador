@@ -1921,6 +1921,11 @@ body.auth-page {
     transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* Mantém os controles da gaveta acessíveis acima do header sticky. */
+  .map-dashboard-page .floating-panel {
+    z-index: 10000 !important;
+  }
+
   .panel-drag-handle {
     display: none !important;
   }

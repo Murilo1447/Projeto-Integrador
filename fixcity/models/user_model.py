@@ -123,34 +123,35 @@ def criar_usuario(data: dict, foto_blob: bytes | None, foto_mime: str) -> int:
         db.commit()
     return mysql_insert_id(cursor) if mysql_enabled() else cursor.lastrowid
 
-def alternar_privacidade_usuario(user_id: int) -> bool:
-    """Alterna o status de privacidade do usuário entre público e privado."""
-    db = get_db()
 
-    # 1. Busca o status atual garantindo o tipo bool
+def tornar_usuario_admin(email: str) -> bool:
+    usuario = buscar_usuario_por_email(email.strip().lower())
+    if not usuario:
+        return False
+
+    db = get_db()
+    db.execute(
+        "UPDATE usuarios SET is_admin = 1 WHERE id_usuario = ?",
+        (usuario["id_usuario"],),
+    )
+    db.commit()
+    return True
+
+
+def alternar_privacidade_usuario(user_id: int) -> bool | None:
+    db = get_db()
     row = db.execute(
         "SELECT is_private FROM usuarios WHERE id_usuario = ?",
-        (user_id,)
+        (user_id,),
     ).fetchone()
+    if not row:
+        return None
 
-    novo_status = True
-    if row:
-        # Pega o valor independente se row é dicionário ou tupla
-        val = row["is_private"] if isinstance(row, dict) else row[0]
-        # Inverte o valor (se era 1/True vira False, se era 0/False vira True)
-        novo_status = not bool(val)
-
-    # 2. Executa o UPDATE (converte bool para int 1/0 para compatibilidade total com MySQL/MariaDB)
-    valor_banco = 1 if novo_status else 0
+    novo_status = not bool(row["is_private"])
     db.execute(
         "UPDATE usuarios SET is_private = ? WHERE id_usuario = ?",
-        (valor_banco, user_id)
+        (int(novo_status), user_id),
     )
-
-    # 3. Força o commit no driver interno se existir
-    if hasattr(db, "conn") and hasattr(db.conn, "commit"):
-        db.conn.commit()
-    elif hasattr(db, "commit"):
-        db.commit()
+    db.commit()
 
     return novo_status

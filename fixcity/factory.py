@@ -3,6 +3,7 @@ from pathlib import Path
 from flask import Flask, flash, redirect, request, url_for
 
 from .auth import inject_user, load_logged_in_user
+from .commands import register_commands
 from .config import default_app_config
 from .controllers import register_routes
 from .db import close_db
@@ -26,6 +27,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.before_request(load_logged_in_user)
     app.context_processor(inject_user)
     app.teardown_appcontext(close_db)
+    register_commands(app)
 
     @app.errorhandler(413)
     def arquivo_grande(_error):

@@ -25,7 +25,7 @@ from ..models.call_model import (
     validar_chamado,
 )
 from ..models.notification_model import criar_notificacao, marcar_notificacoes_como_lidas
-from ..models.user_model import alternar_privacidade_usuario, buscar_usuario_por_id
+from ..models.user_model import alternar_privacidade_usuario
 from ..utils import censurar_email, current_user, normalize_next_url
 
 
@@ -188,23 +188,16 @@ def marcar_notificacoes_lidas_view():
     return redirect(normalize_next_url(request.form.get("next")))
 
 
-def perfil_publico(user_id):
-    perfil = obter_perfil_publico(user_id)
-    
+def perfil_publico(user_id: int):
+    viewer = current_user()
+    perfil = obter_perfil_publico(
+        user_id,
+        viewer_user_id=viewer["id_usuario"] if viewer else None,
+    )
+
     if not perfil:
         flash("Usuário não encontrado.", "danger")
         return redirect(url_for("home"))
-
-    # 1. Busca os dados atualizados do usuário no banco para garantir o valor exato de is_private
-    dados_usuario = buscar_usuario_por_id(user_id)
-    if dados_usuario:
-        # Pega a chave is_private (seja dict ou objeto)
-        is_priv = dados_usuario.get("is_private") if isinstance(dados_usuario, dict) else getattr(dados_usuario, "is_private", False)
-        perfil["is_private"] = bool(is_priv)
-
-    # 2. Se o perfil estiver privado, censura o e-mail
-    if perfil.get("is_private"):
-        perfil["email"] = censurar_email(perfil.get("email", ""))
 
     return render_template("fixcity/perfil.html", perfil=perfil)
 
@@ -212,20 +205,16 @@ def perfil_publico(user_id):
 @login_required
 def alternar_privacidade_view():
     user = current_user()
-    if user:
-        novo_status = alternar_privacidade_usuario(user["id_usuario"])
-        
-        # Atualiza o estado da sessão do utilizador
-        user["is_private"] = novo_status
-        
-        if novo_status:
-            flash("Seu perfil agora está privado.", "success")
-        else:
-            flash("Seu perfil agora está público.", "success")
-            
-        return redirect(url_for("perfil_publico", user_id=user["id_usuario"]))
+    novo_status = alternar_privacidade_usuario(user["id_usuario"])
 
-    return redirect(url_for("home"))
+    if novo_status is None:
+        flash("Não foi possível atualizar a privacidade do perfil.", "error")
+    elif novo_status:
+        flash("Seu perfil agora está privado.", "success")
+    else:
+        flash("Seu perfil agora está público.", "success")
+
+    return redirect(url_for("perfil_publico", user_id=user["id_usuario"]))
 
 
 @admin_required

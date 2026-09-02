@@ -34,9 +34,29 @@ app.py             # Ponto de entrada da aplicacao
 
 O SQLite continua sendo o backend padrao.
 
+## Criar um administrador
+
+O administrador e uma conta comum com a permissao `is_admin` ativada. Primeiro,
+inicie a aplicacao e cadastre a conta pela pagina `/cadastro/`. Depois, pare a
+aplicacao e execute este comando na raiz do projeto:
+
+```powershell
+.\venv\Scripts\python.exe -m flask --app app tornar-admin admin@exemplo.com
+```
+
+Substitua `admin@exemplo.com` pelo e-mail usado no cadastro. O comando utiliza o
+backend configurado nas variaveis de ambiente (`sqlite` ou `mysql`). Ao entrar
+novamente nessa conta, o botao **Admin** dara acesso ao painel em `/admin/`.
+
+Se o ambiente virtual ja estiver ativo, use a forma abreviada:
+
+```powershell
+flask --app app tornar-admin admin@exemplo.com
+```
+
 ## Como conectar com MySQL Workbench
 
-1. Abra o MySQL Workbench e execute o script [database/fixcity_mysql.sql](/c:/Users/felipe.srosa3/OneDrive%20-%20SENAC%20-%20SP/Documentos/pi/Projeto-Integrador/database/fixcity_mysql.sql:1).
+1. Abra o MySQL Workbench e execute o script `database/fixcity_mysql.sql`.
 2. Instale as dependencias do projeto com `pip install -r requirements.txt`.
 3. Defina estas variaveis de ambiente antes de iniciar a aplicacao:
 
